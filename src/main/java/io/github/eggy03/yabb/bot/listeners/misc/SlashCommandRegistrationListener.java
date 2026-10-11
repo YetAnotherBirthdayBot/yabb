@@ -3,6 +3,7 @@ package io.github.eggy03.yabb.bot.listeners.misc;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.NonNull;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.InteractionContextType;
@@ -20,48 +21,59 @@ public final class SlashCommandRegistrationListener extends ListenerAdapter {
 
     @Override
     public void onReady(@NonNull ReadyEvent event) {
-        setAuditLogCommands(event.getJDA());
+        setCommands(event.getJDA());
     }
 
-    private void setAuditLogCommands(@NonNull JDA jda) {
+    private void setCommands(@NonNull JDA jda) {
 
-        // main commands
+        //config commands
         CommandData config = Commands
                 .slash("config", "Configures the bot in your guild")
                 .setContexts(InteractionContextType.GUILD)
-                .setDefaultPermissions(DefaultMemberPermissions.DISABLED)
+                .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MANAGE_SERVER))
                 .addSubcommands(
-                        new SubcommandData("save", "Creates a configuration for your guild")
-                                .addOption(OptionType.CHANNEL, "guild_event_channel", "Set channel for guild events", false)
-                                .addOption(OptionType.CHANNEL, "member_event_channel", "Set channel for member events", false)
-                                .addOption(OptionType.CHANNEL, "message_event_channel", "Set channel for message events", false),
+                        new SubcommandData("save", "Saves configuration for this guild")
+                                .addOption(OptionType.CHANNEL, "announcement_channel", "Announcements will be sent to this channel", true)
+                                .addOption(OptionType.ROLE, "announcement_role", "This role will be pinged during announcements", false),
 
-                        new SubcommandData("view", "Shows the current configuration for your guild"),
-
-                        new SubcommandData("update", "Updates the current configuration")
-                                .addOption(OptionType.CHANNEL, "guild_event_channel", "Set channel for guild events", false)
-                                .addOption(OptionType.CHANNEL, "member_event_channel", "Set channel for member events", false)
-                                .addOption(OptionType.CHANNEL, "message_event_channel", "Set channel for message events", false)
+                        new SubcommandData("view", "Shows your saved configuration for this guild"),
+                        new SubcommandData("delete", "Deletes your saved configuration for this guild")
                 );
 
-        // general commands
-        CommandData serverStats = Commands
-                .slash("stats", "Provides Server Statistics")
+        // birthday commands
+        CommandData birthday = Commands
+                .slash("birthday", "Set your birthday")
                 .setContexts(InteractionContextType.GUILD)
-                .setDefaultPermissions(DefaultMemberPermissions.ENABLED);
+                .setDefaultPermissions(DefaultMemberPermissions.ENABLED)
+                .addSubcommands(
+                        new SubcommandData("save", "Saves your birthday for this guild")
+                                .addOption(OptionType.INTEGER, "birth_day", "Set your birth day", true)
+                                .addOption(OptionType.INTEGER, "birth_month", "Set your birth month", true)
+                                .addOption(OptionType.STRING, "time_zone", "IANA Time Zone", true),
 
-        CommandData help = Commands
-                .slash("help", "Provides a guide on setting up the bot")
-                .setContexts(InteractionContextType.GUILD)
-                .setDefaultPermissions(DefaultMemberPermissions.ENABLED);
+                        new SubcommandData("view", "Shows your saved birthday for this guild"),
+                        new SubcommandData("delete", "Deletes your saved birthday for this guild")
+                );
 
-        CommandData debug = Commands
-                .slash("debug", "Provides standard debug info for troubleshooting")
+        // admin commands
+        CommandData admin = Commands
+                .slash("admin", "Admin commands")
                 .setContexts(InteractionContextType.GUILD)
-                .setDefaultPermissions(DefaultMemberPermissions.ENABLED);
+                .setDefaultPermissions(DefaultMemberPermissions.DISABLED)
+                .addSubcommands(
+                        new SubcommandData("savebirthday", "Save someone's birthday")
+                                .addOption(OptionType.USER, "user", "User whose birthday will be saved", true)
+                                .addOption(OptionType.INTEGER, "birth_day", "Set birth day", true)
+                                .addOption(OptionType.INTEGER, "birth_month", "Set birth month", true)
+                                .addOption(OptionType.STRING, "time_zone", "IANA Time Zone", true),
+
+
+                        new SubcommandData("deletebirthday", "Delete someone's birthday")
+                                .addOption(OptionType.USER, "user", "User whose birthday will be removed", true)
+                );
 
         jda.updateCommands()
-                .addCommands(config, serverStats, help, debug)
+                .addCommands(config, birthday, admin)
                 .queue();
     }
 }
