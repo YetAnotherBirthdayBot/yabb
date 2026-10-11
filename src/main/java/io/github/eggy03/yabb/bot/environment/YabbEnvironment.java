@@ -10,6 +10,7 @@ public interface YabbEnvironment {
     General general();
     Discord discord();
     API api();
+    EmbedColor embedColor();
 
     interface General {
 
@@ -30,6 +31,18 @@ public interface YabbEnvironment {
         @WithName("url")
         @NonNull
         String url();
+    }
+
+    interface EmbedColor {
+
+        @WithName("success.color.integer")
+        int successColor();
+
+        @WithName("warning.color.integer")
+        int warningColor();
+
+        @WithName("destructive.color.integer")
+        int destructiveColor();
     }
 
 }
