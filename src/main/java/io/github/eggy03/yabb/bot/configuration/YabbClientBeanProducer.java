@@ -7,6 +7,7 @@ import io.github.eggy03.yabb.bot.environment.YabbEnvironment;
 import io.github.eggy03.yabb.client.YabbClient;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Singleton;
 import lombok.NonNull;
 import org.jetbrains.annotations.Contract;
 
@@ -21,8 +22,8 @@ public final class YabbClientBeanProducer {
 
     @Contract(" -> new")
     @Produces
-    @ApplicationScoped
-    public @NonNull YabbClient paperTrailGuildClient() {
+    @Singleton // AppScoped doesnt work on Kiota
+    public @NonNull YabbClient yabbClient() {
 
         RequestAdapter adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
         adapter.setBaseUrl(yabbEnvironment.api().url());
