@@ -52,6 +52,7 @@ public final class SlashCommandRegistrationListener extends ListenerAdapter {
                                 .addOption(OptionType.STRING, "time_zone", "IANA Time Zone", true),
 
                         new SubcommandData("view", "Shows your saved birthday for this guild"),
+                        new SubcommandData("viewall", "Shows everyone's saved birthdays for this guild"),
                         new SubcommandData("delete", "Deletes your saved birthday for this guild")
                 );
 
