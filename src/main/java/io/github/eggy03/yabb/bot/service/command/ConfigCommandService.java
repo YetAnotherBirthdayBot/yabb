@@ -3,6 +3,7 @@ package io.github.eggy03.yabb.bot.service.command;
 import io.github.eggy03.yabb.bot.environment.YabbEnvironment;
 import io.github.eggy03.yabb.client.ApiException;
 import io.github.eggy03.yabb.client.api.GuildApi;
+import io.github.eggy03.yabb.client.models.ErrorResponse;
 import io.github.eggy03.yabb.client.models.GuildDTO;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.NonNull;
@@ -53,6 +54,8 @@ public class ConfigCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("Save Configuration");
+        embedBuilder.setDescription("Command to save configuration for this guild");
+        embedBuilder.setThumbnail(guild.getIconUrl());
 
         try {
             guildApi.saveGuild(guildDTO);
@@ -67,10 +70,13 @@ public class ConfigCommandService {
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
         } catch (ApiException e) {
 
+            ErrorResponse errorResponse = e.getErrorObject();
+            String errorMessage = errorResponse == null ? null : e.getMessage();
+
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
             embedBuilder.addField(
                     MarkdownUtil.underline("Save Failure"),
-                    MarkdownUtil.codeblock(e.getResponseBody()),
+                    MarkdownUtil.codeblock(errorMessage == null ? e.getMessage() : errorMessage),
                     false
             );
 
@@ -92,6 +98,8 @@ public class ConfigCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("View Configuration");
+        embedBuilder.setDescription("Command to view saved configuration for this guild");
+        embedBuilder.setThumbnail(guild.getIconUrl());
 
         try {
             GuildDTO guildDTO = guildApi.getGuild(guild.getIdLong());
@@ -104,7 +112,7 @@ public class ConfigCommandService {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
             embedBuilder.addField(
-                    MarkdownUtil.underline("Existing Configuration"),
+                    MarkdownUtil.underline("Configuration Info"),
                     MarkdownUtil.quoteBlock("Announcement Channel: %s%nAnnouncement Role: %s".formatted(announcementChannelMention, announcementRoleMention)),
                     false
             );
@@ -112,10 +120,13 @@ public class ConfigCommandService {
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
         } catch (ApiException e) {
 
+            ErrorResponse errorResponse = e.getErrorObject();
+            String errorMessage = errorResponse == null ? null : e.getMessage();
+
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
             embedBuilder.addField(
                     MarkdownUtil.underline("Could not show configuration"),
-                    MarkdownUtil.codeblock(e.getResponseBody()),
+                    MarkdownUtil.codeblock(errorMessage == null ? e.getMessage() : errorMessage),
                     false
             );
 
@@ -136,6 +147,8 @@ public class ConfigCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("Delete Configuration");
+        embedBuilder.setDescription("Command to delete configuration for this guild");
+        embedBuilder.setThumbnail(guild.getIconUrl());
 
         try {
             guildApi.deleteGuild(guild.getIdLong());
@@ -150,10 +163,13 @@ public class ConfigCommandService {
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
         } catch (ApiException e) {
 
+            ErrorResponse errorResponse = e.getErrorObject();
+            String errorMessage = errorResponse == null ? null : e.getMessage();
+
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
             embedBuilder.addField(
                     MarkdownUtil.underline("Deletion Failure"),
-                    MarkdownUtil.codeblock(e.getResponseBody()),
+                    MarkdownUtil.codeblock(errorMessage == null ? e.getMessage() : errorMessage),
                     false
             );
 

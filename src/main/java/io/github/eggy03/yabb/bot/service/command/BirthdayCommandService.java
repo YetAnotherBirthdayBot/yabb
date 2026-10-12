@@ -6,6 +6,7 @@ import io.github.eggy03.yabb.client.ApiException;
 import io.github.eggy03.yabb.client.api.BirthdayApi;
 import io.github.eggy03.yabb.client.models.BirthdayRequestDTO;
 import io.github.eggy03.yabb.client.models.BirthdayResponseDTO;
+import io.github.eggy03.yabb.client.models.ErrorResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -60,6 +61,8 @@ public class BirthdayCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("Save Birthday");
+        embedBuilder.setDescription("Command to save your birthday");
+        embedBuilder.setThumbnail(event.getUser().getEffectiveAvatarUrl());
 
         try {
             birthdayApi.saveBirthday(birthdayRequestDTO);
@@ -68,8 +71,9 @@ public class BirthdayCommandService {
             embedBuilder.addField(
                     MarkdownUtil.underline("Save Success"),
                     MarkdownUtil.quoteBlock(
-                            "User: %s%nBirth Day: %s%nBirth Month: %s%nTime Zone: %s"
+                            "User: %s (%s)%nBirth Day: %s%nBirth Month: %s%nTime Zone: %s"
                                     .formatted(
+                                            event.getUser().getAsMention(),
                                             event.getUser().getEffectiveName(),
                                             birthdayRequestDTO.getDay(),
                                             Month.of(birthdayRequestDTO.getMonth()).name(),
@@ -81,11 +85,13 @@ public class BirthdayCommandService {
 
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
         } catch (ApiException e) {
+            ErrorResponse errorResponse = e.getErrorObject();
+            String errorMessage = errorResponse == null ? null : e.getMessage();
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
             embedBuilder.addField(
                     MarkdownUtil.underline("Save Failure"),
-                    MarkdownUtil.codeblock(e.getResponseBody()),
+                    MarkdownUtil.codeblock(errorMessage == null ? e.getMessage() : errorMessage),
                     false
             );
 
@@ -105,6 +111,8 @@ public class BirthdayCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("View Birthday");
+        embedBuilder.setDescription("Command to view your birthday");
+        embedBuilder.setThumbnail(event.getUser().getEffectiveAvatarUrl());
 
         try {
             BirthdayResponseDTO birthdayResponseDTO = birthdayApi.getBirthday(guild.getIdLong(), event.getUser().getIdLong());
@@ -113,8 +121,9 @@ public class BirthdayCommandService {
             embedBuilder.addField(
                     MarkdownUtil.underline("Birthday Info"),
                     MarkdownUtil.quoteBlock(
-                            "User: %s%nBirth Day: %s%nBirth Month: %s%nTime Zone: %s%n Next Birthday: %s"
+                            "User: %s (%s)%nBirth Day: %s%nBirth Month: %s%nTime Zone: %s%n Next Birthday: %s"
                                     .formatted(
+                                            event.getUser().getAsMention(),
                                             event.getUser().getEffectiveName(),
                                             birthdayResponseDTO.getDay(),
                                             Month.of(birthdayResponseDTO.getMonth()).getDisplayName(TextStyle.FULL, Locale.ENGLISH),
@@ -130,7 +139,7 @@ public class BirthdayCommandService {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
             embedBuilder.addField(
-                    MarkdownUtil.underline("Not Found"),
+                    MarkdownUtil.underline("View Failure"),
                     MarkdownUtil.quoteBlock("Birthday not found for %s".formatted(event.getUser().getEffectiveName())),
                     false
             );
@@ -152,7 +161,7 @@ public class BirthdayCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("View Everyone's Birthday");
-        embedBuilder.setDescription("List of registered birthdays for this guild");
+        embedBuilder.setDescription("Command to view everyone's birthday in this guild");
         embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
 
         // get the dto list
@@ -193,8 +202,12 @@ public class BirthdayCommandService {
             embedCheckingService.checkAndSend(event, embedBuilder);
 
         } catch (ApiException e) {
+
+            ErrorResponse errorResponse = e.getErrorObject();
+            String errorMessage = errorResponse == null ? null : e.getMessage();
+
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
-            embedBuilder.addField("Failed to list registered birthdays for this guild", MarkdownUtil.codeblock(e.getResponseBody()), false);
+            embedBuilder.addField("View Failure", MarkdownUtil.codeblock(errorMessage == null ? e.getMessage() : errorMessage), false);
             event.getHook().editOriginalEmbeds(embedBuilder.build()).queue();
         }
 
@@ -213,6 +226,8 @@ public class BirthdayCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("Delete Birthday");
+        embedBuilder.setDescription("Command to delete your birthday");
+        embedBuilder.setThumbnail(event.getUser().getEffectiveAvatarUrl());
 
         try {
             birthdayApi.deleteBirthday(guild.getIdLong(), event.getUser().getIdLong());
@@ -227,10 +242,13 @@ public class BirthdayCommandService {
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
         } catch (ApiException e) {
 
+            ErrorResponse errorResponse = e.getErrorObject();
+            String errorMessage = errorResponse == null ? null : e.getMessage();
+
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
             embedBuilder.addField(
                     MarkdownUtil.underline("Deletion Failure"),
-                    MarkdownUtil.codeblock(e.getResponseBody()),
+                    MarkdownUtil.codeblock(errorMessage == null ? e.getMessage() : errorMessage),
                     false
             );
 

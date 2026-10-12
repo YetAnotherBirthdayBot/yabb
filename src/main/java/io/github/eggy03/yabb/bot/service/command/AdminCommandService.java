@@ -4,6 +4,7 @@ import io.github.eggy03.yabb.bot.environment.YabbEnvironment;
 import io.github.eggy03.yabb.client.ApiException;
 import io.github.eggy03.yabb.client.api.BirthdayApi;
 import io.github.eggy03.yabb.client.models.BirthdayRequestDTO;
+import io.github.eggy03.yabb.client.models.ErrorResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +51,8 @@ public class AdminCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("Admin Save Birthday");
+        embedBuilder.setDescription("Administrative command to save someone's birthday");
+        embedBuilder.setThumbnail(birthUserOption.getAsUser().getEffectiveAvatarUrl());
 
         try {
             birthdayApi.saveBirthday(birthdayRequestDTO);
@@ -58,9 +61,10 @@ public class AdminCommandService {
             embedBuilder.addField(
                     MarkdownUtil.underline("Save Success"),
                     MarkdownUtil.quoteBlock(
-                            "User: %s%nBirth Day: %s%nBirth Month: %s%nTime Zone: %s"
+                            "User: %s (%s)%nBirth Day: %s%nBirth Month: %s%nTime Zone: %s"
                                     .formatted(
-                                            event.getUser().getEffectiveName(),
+                                            birthUserOption.getAsUser().getAsMention(),
+                                            birthUserOption.getAsUser().getEffectiveName(),
                                             birthdayRequestDTO.getDay(),
                                             Month.of(birthdayRequestDTO.getMonth()).name(),
                                             birthdayRequestDTO.getZoneId()
@@ -72,10 +76,13 @@ public class AdminCommandService {
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
         } catch (ApiException e) {
 
+            ErrorResponse errorResponse = e.getErrorObject();
+            String errorMessage = errorResponse == null ? null : e.getMessage();
+
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
             embedBuilder.addField(
                     MarkdownUtil.underline("Save Failure"),
-                    MarkdownUtil.codeblock(e.getResponseBody()),
+                    MarkdownUtil.codeblock(errorMessage == null ? e.getMessage() : errorMessage),
                     false
             );
 
@@ -99,6 +106,8 @@ public class AdminCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("Admin Delete Birthday");
+        embedBuilder.setDescription("Administrative command to delete someone's birthday");
+        embedBuilder.setThumbnail(birthUserOption.getAsUser().getEffectiveAvatarUrl());
 
         try {
             birthdayApi.deleteBirthday(guild.getIdLong(), birthUserOption.getAsUser().getIdLong());
@@ -106,17 +115,20 @@ public class AdminCommandService {
             embedBuilder.setColor(yabbEnvironment.embedColor().destructiveColor());
             embedBuilder.addField(
                     MarkdownUtil.underline("Deletion Success"),
-                    MarkdownUtil.quoteBlock("%s's birthday has been deleted".formatted(birthUserOption.getAsUser().getEffectiveName())),
+                    MarkdownUtil.quoteBlock("%s (%s)'s birthday has been deleted".formatted(birthUserOption.getAsUser().getAsMention(), birthUserOption.getAsUser().getEffectiveName())),
                     false
             );
 
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
         } catch (ApiException e) {
 
+            ErrorResponse errorResponse = e.getErrorObject();
+            String errorMessage = errorResponse == null ? null : e.getMessage();
+
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
             embedBuilder.addField(
                     MarkdownUtil.underline("Deletion Failure"),
-                    MarkdownUtil.codeblock(e.getResponseBody()),
+                    MarkdownUtil.codeblock(errorMessage == null ? e.getMessage() : errorMessage),
                     false
             );
 
