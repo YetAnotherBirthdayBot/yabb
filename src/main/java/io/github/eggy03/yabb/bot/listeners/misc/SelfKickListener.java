@@ -12,7 +12,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import java.util.concurrent.ThreadFactory;
 
 /*
- * This class will have methods that unregister the log channels from the database after the bot has been kicked
+ * This class will have methods that unregister the guild and all the birthdays after it has been kicked from it
  */
 @ApplicationScoped
 public final class SelfKickListener extends ListenerAdapter {
@@ -32,9 +32,12 @@ public final class SelfKickListener extends ListenerAdapter {
     public void onGuildLeave(@NonNull GuildLeaveEvent event) {
         Guild leftGuild = event.getGuild();
 
-        virtualThreadFactory.newThread(() -> {}
-                //  todo later
-        ).start();
+        virtualThreadFactory
+                .newThread(() -> {
+                    yabbClient.api().v1().guild().byGuildId(leftGuild.getIdLong()).delete();
+                    yabbClient.api().v1().birthday().byGuildId(leftGuild.getIdLong()).delete();
+                })
+                .start();
 
     }
 }
