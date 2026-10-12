@@ -62,15 +62,15 @@ public final class SlashCommandRegistrationListener extends ListenerAdapter {
                 .setContexts(InteractionContextType.GUILD)
                 .setDefaultPermissions(DefaultMemberPermissions.DISABLED)
                 .addSubcommands(
-                        new SubcommandData("savebirthday", "Save someone's birthday")
-                                .addOption(OptionType.USER, "user", "User whose birthday will be saved", true)
+                        new SubcommandData("savebirthday", "Save someone's birthday in this guild")
+                                .addOption(OptionType.USER, "birth_user", "User whose birthday will be saved", true)
                                 .addOption(OptionType.INTEGER, "birth_day", "Set birth day", true)
                                 .addOption(OptionType.INTEGER, "birth_month", "Set birth month", true)
                                 .addOption(OptionType.STRING, "time_zone", "IANA Time Zone", true),
 
 
-                        new SubcommandData("deletebirthday", "Delete someone's birthday")
-                                .addOption(OptionType.USER, "user", "User whose birthday will be removed", true)
+                        new SubcommandData("deletebirthday", "Delete someone's birthday from this guild")
+                                .addOption(OptionType.USER, "birth_user", "User whose birthday will be removed", true)
                 );
 
         jda.updateCommands()
