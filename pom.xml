@@ -72,6 +72,12 @@
             <artifactId>quarkus-smallrye-health</artifactId>
         </dependency>
 
+        <!--Scheduler -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-scheduler</artifactId>
+        </dependency>
+
         <!-- JDA -->
         <dependency>
             <groupId>net.dv8tion</groupId>
