@@ -63,9 +63,12 @@ public class SlashCommandRegistrationService {
                                 .addOption(OptionType.USER, "birth_user", "User whose birthday will be removed", true)
                 );
 
+        // general commands
+        CommandData help = Commands.slash("help", "Get setup and usage instructions");
+
         event.getJDA()
                 .updateCommands()
-                .addCommands(config, birthday, admin)
+                .addCommands(config, birthday, admin, help)
                 .queue();
     }
 }
