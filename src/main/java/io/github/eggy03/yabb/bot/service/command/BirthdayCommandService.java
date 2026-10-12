@@ -186,7 +186,10 @@ public class BirthdayCommandService {
                                 .filter(dto -> dto.getUserId() != null)
                                 .map(dto -> {
                                     User user = event.getJDA().getUserById(dto.getUserId());
-                                    return "User: %s - Birth Day: %s".formatted(user == null ? "N/A" : user.getEffectiveName() + " | " + user.getAsMention(), dto.getDay());
+                                    return "User: %s | Next Birthday: %s".formatted(
+                                            user == null ? "N/A" : user.getEffectiveName() + " | " + user.getAsMention(),
+                                            dto.getNextBirthdayAt() == null ? "N/A" : TimeFormat.DATE_SHORT_TIME_SHORT.format(dto.getNextBirthdayAt().toInstant())
+                                    );
                                 })
                                 .collect(Collectors.joining("/n")),
                         false
