@@ -12,6 +12,9 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.utils.ChunkingFilter;
+import net.dv8tion.jda.api.utils.MemberCachePolicy;
 
 @Slf4j
 @ApplicationScoped
@@ -33,6 +36,10 @@ public final class BootstrapService {
     JDA constructJDA() {
 
         JDABuilder builder = JDABuilder.createDefault(yabbEnvironment.discord().token());
+
+        builder.enableIntents(GatewayIntent.GUILD_MEMBERS);
+        builder.setMemberCachePolicy(MemberCachePolicy.ALL);
+        builder.setChunkingFilter(ChunkingFilter.ALL);
 
         // set status
         builder.setStatus(OnlineStatus.ONLINE);
