@@ -2,10 +2,11 @@ package io.github.eggy03.yabb.bot.scheduler;
 
 import io.github.eggy03.yabb.bot.annotations.VirtualThreadFactory;
 import io.github.eggy03.yabb.bot.environment.YabbEnvironment;
-import io.github.eggy03.yabb.client.YabbClient;
+import io.github.eggy03.yabb.client.ApiException;
+import io.github.eggy03.yabb.client.api.BirthdayApi;
+import io.github.eggy03.yabb.client.api.GuildApi;
 import io.github.eggy03.yabb.client.models.BirthdayRequestDTO;
 import io.github.eggy03.yabb.client.models.BirthdayResponseDTO;
-import io.github.eggy03.yabb.client.models.ErrorResponse;
 import io.github.eggy03.yabb.client.models.GuildDTO;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -30,14 +31,16 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class BirthdayNotificationScheduler {
 
-    private final @NonNull YabbClient yabbClient;
+    private final @NonNull BirthdayApi birthdayApi;
+    private final @NonNull GuildApi guildApi;
     private final @NonNull YabbEnvironment yabbEnvironment;
     private final @NonNull ThreadFactory virtualThreadFactory;
     private final @NonNull JDA jda;
 
     @Inject
-    public BirthdayNotificationScheduler(@NonNull YabbClient yabbClient, @NonNull YabbEnvironment yabbEnvironment, @NonNull @VirtualThreadFactory ThreadFactory virtualThreadFactory, @NonNull JDA jda) {
-        this.yabbClient = yabbClient;
+    public BirthdayNotificationScheduler(@NonNull BirthdayApi birthdayApi, @NonNull GuildApi guildApi, @NonNull YabbEnvironment yabbEnvironment, @NonNull @VirtualThreadFactory ThreadFactory virtualThreadFactory, @NonNull JDA jda) {
+        this.birthdayApi = birthdayApi;
+        this.guildApi = guildApi;
         this.yabbEnvironment = yabbEnvironment;
         this.virtualThreadFactory = virtualThreadFactory;
         this.jda = jda;
@@ -45,14 +48,7 @@ public class BirthdayNotificationScheduler {
 
     @Scheduled(every = "30s")
     public void checkPendingBirthdays() {
-
-        virtualThreadFactory.newThread(()-> {
-        try {
-            orchestrate();
-        } catch (ErrorResponse e) {
-            log.warn("API Warning: {}\n Path: {}", e.getMessageEscaped(), e.getPath());
-        }
-        }).start();
+        virtualThreadFactory.newThread(this::orchestrate).start();
     }
 
     private void orchestrate() {
@@ -64,41 +60,41 @@ public class BirthdayNotificationScheduler {
 
         // get all the pending birthdays
         // and filter the ones which have guild IDs not present in this JDA
-        List<BirthdayResponseDTO> pendingBirthdayList = Objects
-                .requireNonNull(yabbClient.api().v1().birthday().pending().get(), "The API returned a null list")
-                .stream()
-                .filter(Objects::nonNull)
-                .filter(dto -> dto.getGuildId() != null && guildCacheSet.contains(dto.getGuildId()))
-                .toList();
+        try {
+            List<BirthdayResponseDTO> pendingBirthdayList = birthdayApi.getPendingBirthdays()
+                    .stream()
+                    .filter(Objects::nonNull)
+                    .filter(dto -> guildCacheSet.contains(dto.getGuildId()))
+                    .toList();
 
-        // for each pending birthday
-        pendingBirthdayList.forEach(birthday -> {
-            // get the registered guild
-            GuildDTO guildDTO = Objects.requireNonNull(yabbClient.api()
-                            .v1()
-                            .guild()
-                            .byGuildId(Objects.requireNonNull(birthday.getGuildId(), "guildId was null"))
-                            .get(),
-                    "guildDTO was null even though the API doesn't send nulls"
-            );
+            for (BirthdayResponseDTO birthday : pendingBirthdayList) {
+                // get the registered guild
+                GuildDTO guildDTO = guildApi.getGuild(birthday.getGuildId());
 
-            // send an announcement to the registered channel
-            Role announcementRole = jda.getRoleById(Objects.requireNonNull(guildDTO.getRoleId(), "roleId was null"));
-            Objects.requireNonNull(jda.getTextChannelById(Objects.requireNonNull(guildDTO.getChannelId(), "channelId was null")), "No text channel was found by JDA")
-                    .sendMessage("%s, let's celebrate!".formatted(announcementRole == null ? "Everyone" : announcementRole.getAsMention()))
-                    .addEmbeds(createEmbed(Objects.requireNonNull(birthday.getUserId(), "userId was null")))
-                    .complete(); // don't use async cause this method is wrapped by virtual threads and yabb is sync
+                // send an announcement to the registered channel if a role is registered
+                Role announcementRole = guildDTO.getRoleId() == null
+                        ? null
+                        : jda.getRoleById(guildDTO.getRoleId());
 
-            // on success, update the birthday for next year
-            BirthdayRequestDTO birthdayRequestDTO = new BirthdayRequestDTO();
-            birthdayRequestDTO.setGuildId(birthday.getGuildId());
-            birthdayRequestDTO.setUserId(birthday.getUserId());
-            birthdayRequestDTO.setDay(birthday.getDay());
-            birthdayRequestDTO.setMonth(birthday.getMonth());
-            birthdayRequestDTO.setZoneId(birthday.getZoneId());
+                Objects.requireNonNull(jda.getTextChannelById(guildDTO.getChannelId()), "No text channel was found by JDA! Channel Id: %s".formatted(guildDTO.getChannelId()))
+                        .sendMessage("%s, let's celebrate!".formatted(announcementRole == null ? "Everyone" : announcementRole.getAsMention()))
+                        .addEmbeds(createEmbed(birthday.getUserId()))
+                        .complete(); // don't use async cause this method is wrapped by virtual threads and yabb is sync
 
-            yabbClient.api().v1().birthday().updateForNextYear().patch(birthdayRequestDTO);
-        });
+                // on success, update the birthday for next year
+                BirthdayRequestDTO birthdayRequestDTO = new BirthdayRequestDTO();
+                birthdayRequestDTO.setGuildId(birthday.getGuildId());
+                birthdayRequestDTO.setUserId(birthday.getUserId());
+                birthdayRequestDTO.setDay(birthday.getDay());
+                birthdayRequestDTO.setMonth(birthday.getMonth());
+                birthdayRequestDTO.setZoneId(birthday.getZoneId());
+
+                birthdayApi.updateBirthdayForNextYear(birthdayRequestDTO);
+            }
+        } catch (ApiException e) {
+            log.debug("API Warning During Birthday Notification Scheduler Check: {}", e.getResponseBody());
+        }
+
     }
 
     private @NonNull MessageEmbed createEmbed(long userId) {

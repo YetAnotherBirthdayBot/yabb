@@ -23,7 +23,7 @@
 
         <!-- Dependency Versions -->
         <jda.version>6.7.0</jda.version>
-        <yabb.client.kiota.version>1.0.0</yabb.client.kiota.version>
+        <yabb.client.openapi.version>1.0.0</yabb.client.openapi.version>
         <commons-lang3.version>3.20.0</commons-lang3.version>
         <guava.version>33.7.1-jre</guava.version>
         <jetbrains.annotations.version>26.1.0</jetbrains.annotations.version>
@@ -114,8 +114,8 @@
 
         <dependency>
             <groupId>io.github.eggy03</groupId>
-            <artifactId>yabb-client-kiota</artifactId>
-            <version>${yabb.client.kiota.version}</version>
+            <artifactId>yabb-client-openapi</artifactId>
+            <version>${yabb.client.openapi.version}</version>
         </dependency>
 
     </dependencies>

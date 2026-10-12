@@ -1,8 +1,8 @@
 package io.github.eggy03.yabb.bot.service.command;
 
 import io.github.eggy03.yabb.bot.environment.YabbEnvironment;
-import io.github.eggy03.yabb.client.YabbClient;
-import io.github.eggy03.yabb.client.models.ErrorResponse;
+import io.github.eggy03.yabb.client.ApiException;
+import io.github.eggy03.yabb.client.api.GuildApi;
 import io.github.eggy03.yabb.client.models.GuildDTO;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.NonNull;
@@ -19,11 +19,11 @@ import java.util.Objects;
 @ApplicationScoped
 public class ConfigCommandService {
 
-    private final @NonNull YabbClient yabbClient;
+    private final @NonNull GuildApi guildApi;
     private final @NonNull YabbEnvironment yabbEnvironment;
 
-    public ConfigCommandService(@NonNull YabbClient yabbClient, @NonNull YabbEnvironment yabbEnvironment) {
-        this.yabbClient = yabbClient;
+    public ConfigCommandService(@NonNull GuildApi guildApi, @NonNull YabbEnvironment yabbEnvironment) {
+        this.guildApi = guildApi;
         this.yabbEnvironment = yabbEnvironment;
     }
 
@@ -55,7 +55,7 @@ public class ConfigCommandService {
         embedBuilder.setTitle("Save Configuration");
 
         try {
-            yabbClient.api().v1().guild().post(guildDTO);
+            guildApi.saveGuild(guildDTO);
 
             embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
             embedBuilder.addField(
@@ -65,12 +65,12 @@ public class ConfigCommandService {
             );
 
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
-        } catch (ErrorResponse e) {
+        } catch (ApiException e) {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
             embedBuilder.addField(
                     MarkdownUtil.underline("Save Failure"),
-                    MarkdownUtil.quoteBlock(e.getMessageEscaped() == null ? "" : e.getMessageEscaped()),
+                    MarkdownUtil.codeblock(e.getResponseBody()),
                     false
             );
 
@@ -94,13 +94,13 @@ public class ConfigCommandService {
         embedBuilder.setTitle("View Configuration");
 
         try {
-            GuildDTO guildDTO = Objects.requireNonNull(yabbClient.api().v1().guild().byGuildId(guild.getIdLong()).get(), "guildDTO shouldn't be null cause the API is designed to throw 404 when a guild is not found");
+            GuildDTO guildDTO = guildApi.getGuild(guild.getIdLong());
 
-            TextChannel announcementChanel = guild.getTextChannelById(Objects.requireNonNull(guildDTO.getChannelId(), "channelId from guildDTO shouldn't be null"));
+            TextChannel announcementChanel = guild.getTextChannelById(guildDTO.getChannelId());
             Role announcementRole = guildDTO.getRoleId() == null ? null : guild.getRoleById(guildDTO.getRoleId());
 
-            String announcementChannelMention = announcementChanel == null ? null : announcementChanel.getAsMention();
-            String announcementRoleMention = announcementRole == null ? null : announcementRole.getAsMention();
+            String announcementChannelMention = announcementChanel == null ? "N/A" : announcementChanel.getAsMention();
+            String announcementRoleMention = announcementRole == null ? "N/A" : announcementRole.getAsMention();
 
             embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
             embedBuilder.addField(
@@ -110,12 +110,12 @@ public class ConfigCommandService {
             );
 
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
-        } catch (ErrorResponse e) {
+        } catch (ApiException e) {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
             embedBuilder.addField(
                     MarkdownUtil.underline("Could not show configuration"),
-                    MarkdownUtil.quoteBlock(e.getMessageEscaped() == null ? "" : e.getMessageEscaped()),
+                    MarkdownUtil.codeblock(e.getResponseBody()),
                     false
             );
 
@@ -138,7 +138,7 @@ public class ConfigCommandService {
         embedBuilder.setTitle("Delete Configuration");
 
         try {
-            yabbClient.api().v1().guild().byGuildId(guild.getIdLong()).delete();
+            guildApi.deleteGuild(guild.getIdLong());
 
             embedBuilder.setColor(yabbEnvironment.embedColor().destructiveColor());
             embedBuilder.addField(
@@ -148,12 +148,12 @@ public class ConfigCommandService {
             );
 
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
-        } catch (ErrorResponse e) {
+        } catch (ApiException e) {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
             embedBuilder.addField(
                     MarkdownUtil.underline("Deletion Failure"),
-                    MarkdownUtil.quoteBlock(e.getMessageEscaped() == null ? "" : e.getMessageEscaped()),
+                    MarkdownUtil.codeblock(e.getResponseBody()),
                     false
             );
 

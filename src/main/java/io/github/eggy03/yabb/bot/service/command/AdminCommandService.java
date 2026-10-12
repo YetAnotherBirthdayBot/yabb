@@ -1,9 +1,9 @@
 package io.github.eggy03.yabb.bot.service.command;
 
 import io.github.eggy03.yabb.bot.environment.YabbEnvironment;
-import io.github.eggy03.yabb.client.YabbClient;
+import io.github.eggy03.yabb.client.ApiException;
+import io.github.eggy03.yabb.client.api.BirthdayApi;
 import io.github.eggy03.yabb.client.models.BirthdayRequestDTO;
-import io.github.eggy03.yabb.client.models.ErrorResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class AdminCommandService {
 
-    private final @NonNull YabbClient yabbClient;
+    private final @NonNull BirthdayApi birthdayApi;
     private final @NonNull YabbEnvironment yabbEnvironment;
 
     public void handleSave(@NonNull SlashCommandInteractionEvent event) {
@@ -52,7 +52,7 @@ public class AdminCommandService {
         embedBuilder.setTitle("Admin Save Birthday");
 
         try {
-            yabbClient.api().v1().birthday().post(birthdayRequestDTO);
+            birthdayApi.saveBirthday(birthdayRequestDTO);
 
             embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
             embedBuilder.addField(
@@ -62,7 +62,7 @@ public class AdminCommandService {
                                     .formatted(
                                             event.getUser().getEffectiveName(),
                                             birthdayRequestDTO.getDay(),
-                                            birthdayRequestDTO.getMonth() == null ? "N/A" : Month.of(birthdayRequestDTO.getMonth()).name(),
+                                            Month.of(birthdayRequestDTO.getMonth()).name(),
                                             birthdayRequestDTO.getZoneId()
                                     )
                     ),
@@ -70,12 +70,12 @@ public class AdminCommandService {
             );
 
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
-        } catch (ErrorResponse e) {
+        } catch (ApiException e) {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
             embedBuilder.addField(
                     MarkdownUtil.underline("Save Failure"),
-                    MarkdownUtil.quoteBlock(e.getMessageEscaped() == null ? "" : e.getMessageEscaped()),
+                    MarkdownUtil.codeblock(e.getResponseBody()),
                     false
             );
 
@@ -101,13 +101,7 @@ public class AdminCommandService {
         embedBuilder.setTitle("Admin Delete Birthday");
 
         try {
-            yabbClient
-                    .api()
-                    .v1()
-                    .birthday()
-                    .byGuildId(guild.getIdLong())
-                    .byUserId(birthUserOption.getAsUser().getIdLong())
-                    .delete();
+            birthdayApi.deleteBirthday(guild.getIdLong(), birthUserOption.getAsUser().getIdLong());
 
             embedBuilder.setColor(yabbEnvironment.embedColor().destructiveColor());
             embedBuilder.addField(
@@ -117,12 +111,12 @@ public class AdminCommandService {
             );
 
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
-        } catch (ErrorResponse e) {
+        } catch (ApiException e) {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
             embedBuilder.addField(
                     MarkdownUtil.underline("Deletion Failure"),
-                    MarkdownUtil.quoteBlock(e.getMessageEscaped() == null ? "" : e.getMessageEscaped()),
+                    MarkdownUtil.codeblock(e.getResponseBody()),
                     false
             );
 

@@ -1,24 +1,30 @@
 package io.github.eggy03.yabb.bot.service.misc;
 
 import io.github.eggy03.yabb.bot.annotations.VirtualThreadFactory;
-import io.github.eggy03.yabb.client.YabbClient;
+import io.github.eggy03.yabb.client.ApiException;
+import io.github.eggy03.yabb.client.api.BirthdayApi;
+import io.github.eggy03.yabb.client.api.GuildApi;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
 
 import java.util.concurrent.ThreadFactory;
 
+@Slf4j
 @ApplicationScoped
 public class SelfKickService {
 
-    private final @NonNull YabbClient yabbClient;
+    private final @NonNull GuildApi guildApi;
+    private final @NonNull BirthdayApi birthdayApi;
     private final @NonNull ThreadFactory virtualThreadFactory;
 
     @Inject
-    public SelfKickService(@NonNull YabbClient yabbClient, @NonNull @VirtualThreadFactory ThreadFactory virtualThreadFactory) {
-        this.yabbClient = yabbClient;
+    public SelfKickService(@NonNull GuildApi guildApi, @NonNull BirthdayApi birthdayApi, @NonNull @VirtualThreadFactory ThreadFactory virtualThreadFactory) {
+        this.guildApi = guildApi;
+        this.birthdayApi = birthdayApi;
         this.virtualThreadFactory = virtualThreadFactory;
     }
 
@@ -27,8 +33,12 @@ public class SelfKickService {
 
         virtualThreadFactory
                 .newThread(() -> {
-                    yabbClient.api().v1().guild().byGuildId(leftGuild.getIdLong()).delete();
-                    yabbClient.api().v1().birthday().byGuildId(leftGuild.getIdLong()).delete();
+                    try {
+                        guildApi.deleteGuild(leftGuild.getIdLong());
+                        birthdayApi.deleteBirthdays(leftGuild.getIdLong());
+                    } catch (ApiException e) {
+                        log.warn("Failed to unregister bot on self kick event\n{}", e.getResponseBody());
+                    }
                 })
                 .start();
 

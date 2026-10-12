@@ -2,13 +2,14 @@ package io.github.eggy03.yabb.bot.service.command;
 
 import io.github.eggy03.yabb.bot.environment.YabbEnvironment;
 import io.github.eggy03.yabb.bot.service.EmbedCheckingService;
-import io.github.eggy03.yabb.client.YabbClient;
+import io.github.eggy03.yabb.client.ApiException;
+import io.github.eggy03.yabb.client.api.BirthdayApi;
 import io.github.eggy03.yabb.client.models.BirthdayRequestDTO;
 import io.github.eggy03.yabb.client.models.BirthdayResponseDTO;
-import io.github.eggy03.yabb.client.models.ErrorResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.User;
@@ -25,11 +26,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+@Slf4j
 @ApplicationScoped
 @RequiredArgsConstructor
 public class BirthdayCommandService {
 
-    private final @NonNull YabbClient yabbClient;
+    private final @NonNull BirthdayApi birthdayApi;
     private final @NonNull YabbEnvironment yabbEnvironment;
     private final @NonNull EmbedCheckingService embedCheckingService;
 
@@ -60,7 +62,7 @@ public class BirthdayCommandService {
         embedBuilder.setTitle("Save Birthday");
 
         try {
-            yabbClient.api().v1().birthday().post(birthdayRequestDTO);
+            birthdayApi.saveBirthday(birthdayRequestDTO);
 
             embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
             embedBuilder.addField(
@@ -70,7 +72,7 @@ public class BirthdayCommandService {
                                     .formatted(
                                             event.getUser().getEffectiveName(),
                                             birthdayRequestDTO.getDay(),
-                                            birthdayRequestDTO.getMonth() == null ? "N/A" : Month.of(birthdayRequestDTO.getMonth()).name(),
+                                            Month.of(birthdayRequestDTO.getMonth()).name(),
                                             birthdayRequestDTO.getZoneId()
                                     )
                     ),
@@ -78,12 +80,12 @@ public class BirthdayCommandService {
             );
 
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
-        } catch (ErrorResponse e) {
+        } catch (ApiException e) {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
             embedBuilder.addField(
                     MarkdownUtil.underline("Save Failure"),
-                    MarkdownUtil.quoteBlock(e.getMessageEscaped() == null ? "" : e.getMessageEscaped()),
+                    MarkdownUtil.codeblock(e.getResponseBody()),
                     false
             );
 
@@ -105,13 +107,7 @@ public class BirthdayCommandService {
         embedBuilder.setTitle("View Birthday");
 
         try {
-            BirthdayResponseDTO birthdayResponseDTO = Objects.requireNonNull(
-                    yabbClient.api().v1().birthday()
-                            .byGuildId(guild.getIdLong())
-                            .byUserId(event.getUser().getIdLong())
-                            .get(),
-                    "birthdayResponseDTO should never be null cause the API throws 404 instead"
-            );
+            BirthdayResponseDTO birthdayResponseDTO = birthdayApi.getBirthday(guild.getIdLong(), event.getUser().getIdLong());
 
             embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
             embedBuilder.addField(
@@ -121,16 +117,16 @@ public class BirthdayCommandService {
                                     .formatted(
                                             event.getUser().getEffectiveName(),
                                             birthdayResponseDTO.getDay(),
-                                            birthdayResponseDTO.getMonth() == null ? "N/A" : Month.of(birthdayResponseDTO.getMonth()).getDisplayName(TextStyle.FULL, Locale.ENGLISH),
+                                            Month.of(birthdayResponseDTO.getMonth()).getDisplayName(TextStyle.FULL, Locale.ENGLISH),
                                             birthdayResponseDTO.getZoneId(),
-                                            birthdayResponseDTO.getNextBirthdayAt() == null ? "N/A" : TimeFormat.DATE_SHORT_TIME_SHORT.format(birthdayResponseDTO.getNextBirthdayAt().toInstant())
+                                            TimeFormat.DATE_SHORT_TIME_SHORT.format(birthdayResponseDTO.getNextBirthdayAt().toInstant())
                                     )
                     ),
                     false
             );
 
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
-        } catch (ErrorResponse _) {
+        } catch (ApiException _) {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
             embedBuilder.addField(
@@ -153,50 +149,54 @@ public class BirthdayCommandService {
         // defer reply
         event.deferReply().queue();
 
-        // get the dto list
-        List<BirthdayResponseDTO> birthdayResponseDTOList = yabbClient.api().v1().birthday().byGuildId(guild.getIdLong()).get();
-
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("View Everyone's Birthday");
-        embedBuilder.setDescription("");
+        embedBuilder.setDescription("List of registered birthdays for this guild");
         embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
 
-        // case where birthdays are not found
-        if (birthdayResponseDTOList == null || birthdayResponseDTOList.isEmpty()) {
+        // get the dto list
+        try {
+            List<BirthdayResponseDTO> birthdayResponseDTOList = birthdayApi.getBirthdays(guild.getIdLong());
+
+            // case where birthdays are not found
+            if (birthdayResponseDTOList.isEmpty()) {
+                embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
+                embedBuilder.addField(MarkdownUtil.quoteBlock("No birthdays found for this guild"),"", false);
+                event.getHook().editOriginalEmbeds(embedBuilder.build()).queue();
+            }
+
+            // group birthdays by month
+            Map<Integer, List<BirthdayResponseDTO>> birthdayResponseDTOMap = birthdayResponseDTOList
+                    .stream()
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.groupingBy(BirthdayResponseDTO::getMonth));
+
+            // show the same grouping in the embed
+            // each field represents a month
+            birthdayResponseDTOMap.forEach((month, birthdayList) ->
+                    embedBuilder.addField(
+                            MarkdownUtil.underline(Month.of(month).getDisplayName(TextStyle.FULL, Locale.ENGLISH)),
+                            birthdayList.stream()
+                                    .map(dto -> {
+                                        User user = event.getJDA().getUserById(dto.getUserId());
+                                        return "User: %s | Next Birthday: %s".formatted(
+                                                user == null ? "N/A" : user.getEffectiveName() + " | " + user.getAsMention(),
+                                                TimeFormat.DATE_SHORT_TIME_SHORT.format(dto.getNextBirthdayAt().toInstant())
+                                        );
+                                    })
+                                    .collect(Collectors.joining("/n")),
+                            false
+                    ));
+
+            // check if the embed is too long
+            embedCheckingService.checkAndSend(event, embedBuilder);
+
+        } catch (ApiException e) {
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
-            embedBuilder.addField("", MarkdownUtil.quoteBlock("No birthdays found for this guild"), false);
+            embedBuilder.addField("Failed to list registered birthdays for this guild", MarkdownUtil.codeblock(e.getResponseBody()), false);
             event.getHook().editOriginalEmbeds(embedBuilder.build()).queue();
-            return;
         }
-
-        // group birthdays by month
-        Map<Integer, List<BirthdayResponseDTO>> birthdayResponseDTOMap = birthdayResponseDTOList
-                .stream()
-                .filter(Objects::nonNull)
-                .filter(dto -> dto.getMonth() != null)
-                .collect(Collectors.groupingBy(BirthdayResponseDTO::getMonth));
-
-        // show the same grouping in the embed
-        // each field represents a month
-        birthdayResponseDTOMap.forEach((month, birthdayList) ->
-                embedBuilder.addField(
-                        MarkdownUtil.underline(Month.of(month).getDisplayName(TextStyle.FULL, Locale.ENGLISH)),
-                        birthdayList.stream()
-                                .filter(dto -> dto.getUserId() != null)
-                                .map(dto -> {
-                                    User user = event.getJDA().getUserById(dto.getUserId());
-                                    return "User: %s | Next Birthday: %s".formatted(
-                                            user == null ? "N/A" : user.getEffectiveName() + " | " + user.getAsMention(),
-                                            dto.getNextBirthdayAt() == null ? "N/A" : TimeFormat.DATE_SHORT_TIME_SHORT.format(dto.getNextBirthdayAt().toInstant())
-                                    );
-                                })
-                                .collect(Collectors.joining("/n")),
-                        false
-                ));
-
-        // check if the embed is too long
-        embedCheckingService.checkAndSend(event, embedBuilder);
 
     }
 
@@ -215,7 +215,7 @@ public class BirthdayCommandService {
         embedBuilder.setTitle("Delete Birthday");
 
         try {
-            yabbClient.api().v1().birthday().byGuildId(guild.getIdLong()).byUserId(event.getUser().getIdLong()).delete();
+            birthdayApi.deleteBirthday(guild.getIdLong(), event.getUser().getIdLong());
 
             embedBuilder.setColor(yabbEnvironment.embedColor().destructiveColor());
             embedBuilder.addField(
@@ -225,12 +225,12 @@ public class BirthdayCommandService {
             );
 
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
-        } catch (ErrorResponse e) {
+        } catch (ApiException e) {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
             embedBuilder.addField(
                     MarkdownUtil.underline("Deletion Failure"),
-                    MarkdownUtil.quoteBlock(e.getMessageEscaped() == null ? "" : e.getMessageEscaped()),
+                    MarkdownUtil.codeblock(e.getResponseBody()),
                     false
             );
 
