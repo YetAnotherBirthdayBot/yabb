@@ -1,80 +1,24 @@
 package io.github.eggy03.yabb.bot.listeners.misc;
 
+import io.github.eggy03.yabb.bot.service.misc.SlashCommandRegistrationService;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.NonNull;
-import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.Permission;
+import lombok.RequiredArgsConstructor;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.InteractionContextType;
-import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
-import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.CommandData;
-import net.dv8tion.jda.api.interactions.commands.build.Commands;
-import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 
 /*
  * Registers all the slash commands places throughout the code on startup
  */
 @ApplicationScoped
-public final class SlashCommandRegistrationListener extends ListenerAdapter {
+@RequiredArgsConstructor
+public class SlashCommandRegistrationListener extends ListenerAdapter {
+
+    private final @NonNull SlashCommandRegistrationService slashCommandRegistrationService;
 
     @Override
     public void onReady(@NonNull ReadyEvent event) {
-        setCommands(event.getJDA());
+        slashCommandRegistrationService.registerCommands(event);
     }
 
-    private void setCommands(@NonNull JDA jda) {
-
-        //config commands
-        CommandData config = Commands
-                .slash("config", "Configures the bot in your guild")
-                .setContexts(InteractionContextType.GUILD)
-                .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MANAGE_SERVER))
-                .addSubcommands(
-                        new SubcommandData("save", "Saves configuration for this guild")
-                                .addOption(OptionType.CHANNEL, "announcement_channel", "Announcements will be sent to this channel", true)
-                                .addOption(OptionType.ROLE, "announcement_role", "This role will be pinged during announcements", false),
-
-                        new SubcommandData("view", "Shows your saved configuration for this guild"),
-                        new SubcommandData("delete", "Deletes your saved configuration for this guild")
-                );
-
-        // birthday commands
-        CommandData birthday = Commands
-                .slash("birthday", "Set your birthday")
-                .setContexts(InteractionContextType.GUILD)
-                .setDefaultPermissions(DefaultMemberPermissions.ENABLED)
-                .addSubcommands(
-                        new SubcommandData("save", "Saves your birthday for this guild")
-                                .addOption(OptionType.INTEGER, "birth_day", "Set your birth day", true)
-                                .addOption(OptionType.INTEGER, "birth_month", "Set your birth month", true)
-                                .addOption(OptionType.STRING, "time_zone", "IANA Time Zone", true),
-
-                        new SubcommandData("view", "Shows your saved birthday for this guild"),
-                        new SubcommandData("viewall", "Shows everyone's saved birthdays for this guild"),
-                        new SubcommandData("delete", "Deletes your saved birthday for this guild")
-                );
-
-        // admin commands
-        CommandData admin = Commands
-                .slash("admin", "Admin commands")
-                .setContexts(InteractionContextType.GUILD)
-                .setDefaultPermissions(DefaultMemberPermissions.DISABLED)
-                .addSubcommands(
-                        new SubcommandData("savebirthday", "Save someone's birthday in this guild")
-                                .addOption(OptionType.USER, "birth_user", "User whose birthday will be saved", true)
-                                .addOption(OptionType.INTEGER, "birth_day", "Set birth day", true)
-                                .addOption(OptionType.INTEGER, "birth_month", "Set birth month", true)
-                                .addOption(OptionType.STRING, "time_zone", "IANA Time Zone", true),
-
-
-                        new SubcommandData("deletebirthday", "Delete someone's birthday from this guild")
-                                .addOption(OptionType.USER, "birth_user", "User whose birthday will be removed", true)
-                );
-
-        jda.updateCommands()
-                .addCommands(config, birthday, admin)
-                .queue();
-    }
 }
