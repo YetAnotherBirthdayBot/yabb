@@ -41,8 +41,13 @@ public class HelpCommandService {
                 MarkdownUtil.underline("2. Birthday Commands"),
                 """
                         Use `/birthday save [birth_day] [birth_month] [time_zone]` to save your birthday.
-                        Timezone uses [IANA](https://time.now/iana-time-zone/) naming scheme.
-                        Example: `America/Montreal`, `Australia/Perth`
+                        
+                        `time_zone` accepts a wide variety of formats. The following patterns are supported:
+                        
+                        Region Based: `America/Montreal`, `Australia/Perth`, `Europe/Paris`
+                        GMT Offset: `GMT+0530`, `GMT+0400`
+                        UTC Offset: `UTC+0530`, `UTC+0400`
+                        UT  Offset:  `UT+0530`,  `UT+0400`
                         
                         Use `/birthday view` to view your birthday.
                         Use `/birthday viewall` to view everyone's birthday in a guild.
