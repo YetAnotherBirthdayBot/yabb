@@ -48,7 +48,7 @@ public class BirthdayNotificationScheduler {
         this.jda = jda;
     }
 
-    @Scheduled(every = "30s")
+    @Scheduled(every = "360s")
     public void checkPendingBirthdays() {
         virtualThreadFactory.newThread(this::orchestrate).start();
     }
