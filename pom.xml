@@ -23,7 +23,7 @@
 
         <!-- Dependency Versions -->
         <jda.version>6.7.0</jda.version>
-        <yabb.client.openapi.version>1.0.0</yabb.client.openapi.version>
+        <yabb.client.openapi.version>1.0.1</yabb.client.openapi.version>
         <commons-lang3.version>3.20.0</commons-lang3.version>
         <guava.version>33.7.1-jre</guava.version>
         <jetbrains.annotations.version>26.1.0</jetbrains.annotations.version>
