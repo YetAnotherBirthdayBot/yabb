@@ -108,14 +108,17 @@ public class BirthdayNotificationScheduler {
 
         TextChannel textChannel = jda.getTextChannelById(guildDTO.getChannelId());
         if (textChannel != null && textChannel.canTalk()) {
-            textChannel.sendMessage("%s, let's celebrate!".formatted(announcementRoleMention))
-                    .addEmbeds(eb.build())
-                    .complete(); // don't use async cause this method is wrapped by virtual threads
+            try {
+                textChannel.sendMessage("%s, let's celebrate!".formatted(announcementRoleMention))
+                        .addEmbeds(eb.build())
+                        .complete(); // don't use async cause this method is wrapped by virtual threads
 
-            // on success, update the birthday for next year
-            updateBirthdayForNextYearChecked(birthdayResponseDTO);
+                // on success, update the birthday for next year
+                updateBirthdayForNextYearChecked(birthdayResponseDTO);
+            } catch (Exception e) {
+                log.warn("Scheduler: Failed to send birthday notification", e);
+            }
         }
-
     }
 
     // checked api functions (ApiException is caught and sometimes logged)
@@ -128,7 +131,7 @@ public class BirthdayNotificationScheduler {
                     .filter(Objects::nonNull)
                     .toList();
         } catch (ApiException e) {
-            log.debug("Scheduler: No pending birthdays found", e);
+            log.debug("Scheduler: Failed to retrieve pending birthdays", e);
             return List.of();
         }
     }
@@ -153,7 +156,7 @@ public class BirthdayNotificationScheduler {
         try {
             return guildApi.getGuild(guildId);
         } catch (ApiException e) {
-            log.debug("Scheduler: Guild to send notification not found", e);
+            log.debug("Scheduler: Failed to retrieve guild", e);
             return null;
         }
     }
