@@ -51,7 +51,7 @@ public class BirthdayNotificationScheduler {
     }
 
     @Scheduled(every = "360s")
-    public void checkPendingBirthdays() {
+    public void checkActiveBirthdays() {
         virtualThreadFactory.newThread(this::orchestrate).start();
     }
 
@@ -63,16 +63,16 @@ public class BirthdayNotificationScheduler {
                 .map(ISnowflake::getIdLong)
                 .collect(Collectors.toSet());
 
-        // get all the pending birthdays
+        // get all the active birthdays
         // and filter the ones which have guild IDs not present in this JDA
-        List<BirthdayResponseDTO> pendingBirthdayList = getPendingBirthdaysChecked()
+        List<BirthdayResponseDTO> activeBirthdayList = getActiveBirthdaysChecked()
                 .stream()
                 .filter(dto -> guildCacheSet.contains(dto.getGuildId()))
                 .toList();
 
-        // for each pending birthday, check the registered guild, build the embed, send it
+        // for each active birthday, check the registered guild, build the embed, send it
         // then update birthday for next year
-        pendingBirthdayList.forEach(birthday -> {
+        activeBirthdayList.forEach(birthday -> {
 
             // get the registered guild
             GuildDTO guildDTO = getGuildChecked(birthday.getGuildId());
@@ -128,14 +128,14 @@ public class BirthdayNotificationScheduler {
     // checked api functions (ApiException is caught and sometimes logged)
     // it's hideous to try catch them in the scheduler
 
-    private @NonNull @Unmodifiable List<@NonNull BirthdayResponseDTO> getPendingBirthdaysChecked() {
+    private @NonNull @Unmodifiable List<@NonNull BirthdayResponseDTO> getActiveBirthdaysChecked() {
         try {
-            return birthdayApi.getPendingBirthdays()
+            return birthdayApi.getActiveBirthdays()
                     .stream()
                     .filter(Objects::nonNull)
                     .toList();
         } catch (ApiException e) {
-            log.debug("Scheduler: Failed to retrieve pending birthdays", e);
+            log.debug("Scheduler: Failed to retrieve active birthdays", e);
             return List.of();
         }
     }
