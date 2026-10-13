@@ -20,9 +20,11 @@ import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.utils.MarkdownUtil;
+import net.dv8tion.jda.api.utils.TimeFormat;
 import org.jetbrains.annotations.Unmodifiable;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -89,27 +91,29 @@ public class BirthdayNotificationScheduler {
 
         // resolve the birthday user
         User user = jda.getUserById(birthdayResponseDTO.getUserId());
-        String userName = user == null ? null : user.getEffectiveName();
-        String userMention = user == null ? null : user.getAsMention();
+        String userName = user == null ? "N/A" : user.getEffectiveName();
+        String userMention = user == null ? "N/A" : user.getAsMention();
 
         // resolve the announcement role
         Role announcementRole = guildDTO.getRoleId() == null ? null : jda.getRoleById(guildDTO.getRoleId());
         String announcementRoleMention = announcementRole == null ? "Everyone" : announcementRole.getAsMention();
 
         EmbedBuilder eb = new EmbedBuilder();
-        eb.setTitle("Scheduled Birthday Event Notification");
-        eb.setDescription("For %s (%s)".formatted(userMention, userName));
+        eb.setTitle("Birthday Event Notification");
+        eb.setDescription("For %s".formatted(userName));
         eb.setColor(yabbEnvironment.embedColor().successColor());
+        eb.setThumbnail(user == null ? null : user.getEffectiveAvatarUrl());
 
-        eb.addField(MarkdownUtil.quote("Please Wish"), MarkdownUtil.quoteBlock("%s (%s), a very happy birthday").formatted(userMention, userName), false);
+        eb.addField(MarkdownUtil.underline("Birthday Member"), MarkdownUtil.quoteBlock("%s (%s)").formatted(userMention, userName), false);
+        eb.addField(MarkdownUtil.underline("Birthday Time"), MarkdownUtil.quoteBlock(TimeFormat.DATE_SHORT_TIME_SHORT.format(birthdayResponseDTO.getNextBirthdayAt())), false);
 
-        eb.setFooter("This notification was scheduled for");
-        eb.setTimestamp(birthdayResponseDTO.getNextBirthdayAt());
+        eb.setFooter("Sent");
+        eb.setTimestamp(Instant.now());
 
         TextChannel textChannel = jda.getTextChannelById(guildDTO.getChannelId());
         if (textChannel != null && textChannel.canTalk()) {
             try {
-                textChannel.sendMessage("%s, let's celebrate!".formatted(announcementRoleMention))
+                textChannel.sendMessage("%s, let's celebrate %s's birthday!".formatted(announcementRoleMention, userName))
                         .addEmbeds(eb.build())
                         .complete(); // don't use async cause this method is wrapped by virtual threads
 
