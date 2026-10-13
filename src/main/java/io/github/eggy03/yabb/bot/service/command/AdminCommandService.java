@@ -1,6 +1,7 @@
 package io.github.eggy03.yabb.bot.service.command;
 
 import io.github.eggy03.yabb.bot.environment.YabbEnvironment;
+import io.github.eggy03.yabb.bot.utils.ErrorResponseDeserializer;
 import io.github.eggy03.yabb.client.ApiException;
 import io.github.eggy03.yabb.client.api.BirthdayApi;
 import io.github.eggy03.yabb.client.models.BirthdayRequestDTO;
@@ -8,6 +9,7 @@ import io.github.eggy03.yabb.client.models.ErrorResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -17,6 +19,7 @@ import net.dv8tion.jda.api.utils.MarkdownUtil;
 import java.time.Month;
 import java.util.Objects;
 
+@Slf4j
 @ApplicationScoped
 @RequiredArgsConstructor
 public class AdminCommandService {
@@ -51,7 +54,7 @@ public class AdminCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("Admin Save Birthday");
-        embedBuilder.setDescription("Administrative command to save someone's birthday");
+        embedBuilder.setDescription("Saving %s's birthday in this guild".formatted(birthUserOption.getAsUser().getEffectiveName()));
         embedBuilder.setThumbnail(birthUserOption.getAsUser().getEffectiveAvatarUrl());
 
         try {
@@ -76,15 +79,17 @@ public class AdminCommandService {
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
         } catch (ApiException e) {
 
-            ErrorResponse errorResponse = e.getErrorObject();
-            String errorMessage = errorResponse == null ? null : e.getMessage();
-
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
-            embedBuilder.addField(
-                    MarkdownUtil.underline("Save Failure"),
-                    MarkdownUtil.codeblock(errorMessage == null ? e.getMessage() : errorMessage),
-                    false
-            );
+
+            ErrorResponse errorResponse = ErrorResponseDeserializer.fromApiException(e);
+            switch (e.getCode()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(errorResponse.getMessage()), false);
+                case 409 -> embedBuilder.addField("Birthday Already Exists", MarkdownUtil.codeblock("Birthday for user (%s) already exists".formatted(birthUserOption.getAsUser().getEffectiveName())), false);
+                default -> {
+                    embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
+                    log.warn("API Error during admin save birthday", e);
+                }
+            }
 
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
         }
@@ -106,7 +111,7 @@ public class AdminCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("Admin Delete Birthday");
-        embedBuilder.setDescription("Administrative command to delete someone's birthday");
+        embedBuilder.setDescription("Deleting %s's birthday from this guild".formatted(birthUserOption.getAsUser().getEffectiveName()));
         embedBuilder.setThumbnail(birthUserOption.getAsUser().getEffectiveAvatarUrl());
 
         try {
@@ -122,15 +127,17 @@ public class AdminCommandService {
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
         } catch (ApiException e) {
 
-            ErrorResponse errorResponse = e.getErrorObject();
-            String errorMessage = errorResponse == null ? null : e.getMessage();
-
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
-            embedBuilder.addField(
-                    MarkdownUtil.underline("Deletion Failure"),
-                    MarkdownUtil.codeblock(errorMessage == null ? e.getMessage() : errorMessage),
-                    false
-            );
+
+            ErrorResponse errorResponse = ErrorResponseDeserializer.fromApiException(e);
+            switch (e.getCode()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(errorResponse.getMessage()), false);
+                case 404 -> embedBuilder.addField("Birthday Does Not Exist", MarkdownUtil.codeblock("Birthday not found for (%s)".formatted(birthUserOption.getAsUser().getEffectiveName())), false);
+                default -> {
+                    embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
+                    log.warn("API Error during admin delete birthday", e);
+                }
+            }
 
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
         }

@@ -1,12 +1,14 @@
 package io.github.eggy03.yabb.bot.service.command;
 
 import io.github.eggy03.yabb.bot.environment.YabbEnvironment;
+import io.github.eggy03.yabb.bot.utils.ErrorResponseDeserializer;
 import io.github.eggy03.yabb.client.ApiException;
 import io.github.eggy03.yabb.client.api.GuildApi;
 import io.github.eggy03.yabb.client.models.ErrorResponse;
 import io.github.eggy03.yabb.client.models.GuildDTO;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Role;
@@ -18,6 +20,7 @@ import net.dv8tion.jda.api.utils.MarkdownUtil;
 import java.util.Objects;
 
 @ApplicationScoped
+@Slf4j
 public class ConfigCommandService {
 
     private final @NonNull GuildApi guildApi;
@@ -54,7 +57,7 @@ public class ConfigCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("Save Configuration");
-        embedBuilder.setDescription("Command to save configuration for this guild");
+        embedBuilder.setDescription("Saving configuration for this guild");
         embedBuilder.setThumbnail(guild.getIconUrl());
 
         try {
@@ -70,15 +73,17 @@ public class ConfigCommandService {
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
         } catch (ApiException e) {
 
-            ErrorResponse errorResponse = e.getErrorObject();
-            String errorMessage = errorResponse == null ? null : e.getMessage();
-
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
-            embedBuilder.addField(
-                    MarkdownUtil.underline("Save Failure"),
-                    MarkdownUtil.codeblock(errorMessage == null ? e.getMessage() : errorMessage),
-                    false
-            );
+
+            ErrorResponse errorResponse = ErrorResponseDeserializer.fromApiException(e);
+            switch (e.getCode()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(errorResponse.getMessage()), false);
+                case 409 -> embedBuilder.addField("Configuration Already Exists", MarkdownUtil.codeblock("Guild (%s) is already configured".formatted(guild.getName())), false);
+                default -> {
+                    embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
+                    log.warn("API Error during configuration save", e);
+                }
+            }
 
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
         }
@@ -98,7 +103,7 @@ public class ConfigCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("View Configuration");
-        embedBuilder.setDescription("Command to view saved configuration for this guild");
+        embedBuilder.setDescription("Viewing configuration for this guild");
         embedBuilder.setThumbnail(guild.getIconUrl());
 
         try {
@@ -120,15 +125,18 @@ public class ConfigCommandService {
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
         } catch (ApiException e) {
 
-            ErrorResponse errorResponse = e.getErrorObject();
-            String errorMessage = errorResponse == null ? null : e.getMessage();
-
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
-            embedBuilder.addField(
-                    MarkdownUtil.underline("Could not show configuration"),
-                    MarkdownUtil.codeblock(errorMessage == null ? e.getMessage() : errorMessage),
-                    false
-            );
+
+            ErrorResponse errorResponse = ErrorResponseDeserializer.fromApiException(e);
+            switch (e.getCode()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(errorResponse.getMessage()), false);
+                case 404 -> embedBuilder.addField("Configuration Does Not Exist", MarkdownUtil.codeblock("Guild (%s) is not configured".formatted(guild.getName())), false);
+                default -> {
+                    embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
+                    log.warn("API Error during configuration view", e);
+                }
+            }
+
 
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
         }
@@ -147,7 +155,7 @@ public class ConfigCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("Delete Configuration");
-        embedBuilder.setDescription("Command to delete configuration for this guild");
+        embedBuilder.setDescription("Deleting configuration for this guild");
         embedBuilder.setThumbnail(guild.getIconUrl());
 
         try {
@@ -163,15 +171,17 @@ public class ConfigCommandService {
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
         } catch (ApiException e) {
 
-            ErrorResponse errorResponse = e.getErrorObject();
-            String errorMessage = errorResponse == null ? null : e.getMessage();
-
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
-            embedBuilder.addField(
-                    MarkdownUtil.underline("Deletion Failure"),
-                    MarkdownUtil.codeblock(errorMessage == null ? e.getMessage() : errorMessage),
-                    false
-            );
+
+            ErrorResponse errorResponse = ErrorResponseDeserializer.fromApiException(e);
+            switch (e.getCode()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(errorResponse.getMessage()), false);
+                case 404 -> embedBuilder.addField("Configuration Does Not Exist", MarkdownUtil.codeblock("Guild (%s) is not configured".formatted(guild.getName())), false);
+                default -> {
+                    embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
+                    log.warn("API Error during configuration delete", e);
+                }
+            }
 
             event.getHook().editOriginalEmbeds((embedBuilder.build())).queue();
         }
