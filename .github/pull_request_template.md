@@ -18,15 +18,6 @@ Keep all that apply:
 
 ---
 
-## **Tasks for Native Builds**
-
-- [ ] New Code Added
-    - [ ] New Code Tested In Native Build
-- [ ] Dependencies Updated
-    - [ ] Dependencies Updates Tested In Native Build
-- [ ] Reachability Metadata Updated
-    - [ ] Update Tested In Native Build
-
 ## **Related Issues**
 
 If this PR closes or relates to an existing issue, link it here:
