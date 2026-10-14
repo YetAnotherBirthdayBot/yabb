@@ -1,5 +1,6 @@
 # Importing JDK and copying required files
 FROM eclipse-temurin:25 AS build
+LABEL org.opencontainers.image.source="https://github.com/YetAnotherBirthdayBot/yabb"
 WORKDIR /app
 
 # Copy Maven wrapper
