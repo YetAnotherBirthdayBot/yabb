@@ -51,7 +51,7 @@ public class ExpiredBirthdayScheduler {
                     .filter(Objects::nonNull)
                     .toList();
         } catch (ApiException e) {
-            log.debug("Scheduler: Failed to retrieve expired birthdays", e);
+            log.warn("Scheduler: Failed to retrieve expired birthdays", e);
             return List.of();
         }
     }
