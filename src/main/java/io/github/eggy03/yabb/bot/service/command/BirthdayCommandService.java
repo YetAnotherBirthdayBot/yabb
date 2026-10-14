@@ -132,7 +132,7 @@ public class BirthdayCommandService {
                                             birthdayResponseDTO.getDay(),
                                             Month.of(birthdayResponseDTO.getMonth()).getDisplayName(TextStyle.FULL, Locale.ENGLISH),
                                             birthdayResponseDTO.getZoneId(),
-                                            TimeFormat.DATE_SHORT_TIME_SHORT.format(birthdayResponseDTO.getNextBirthdayAt())
+                                            TimeFormat.DATE_SHORT_TIME_SHORT.format(birthdayResponseDTO.getUpcomingBirthday())
                                     )
                     ),
                     false
@@ -200,7 +200,7 @@ public class BirthdayCommandService {
 
                                         return "User: %s (%s) | Next Birthday: %s".formatted(
                                                 userMention, userName,
-                                                TimeFormat.DATE_SHORT_TIME_SHORT.format(dto.getNextBirthdayAt())
+                                                TimeFormat.DATE_SHORT_TIME_SHORT.format(dto.getUpcomingBirthday())
                                         );
                                     })
                                     .collect(Collectors.joining(System.lineSeparator())),

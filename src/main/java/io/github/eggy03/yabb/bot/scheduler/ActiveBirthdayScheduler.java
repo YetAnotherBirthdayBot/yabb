@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @ApplicationScoped
-public class BirthdayNotificationScheduler {
+public class ActiveBirthdayScheduler {
 
     private final @NonNull BirthdayApi birthdayApi;
     private final @NonNull GuildApi guildApi;
@@ -42,7 +42,7 @@ public class BirthdayNotificationScheduler {
     private final @NonNull JDA jda;
 
     @Inject
-    public BirthdayNotificationScheduler(@NonNull BirthdayApi birthdayApi, @NonNull GuildApi guildApi, @NonNull YabbEnvironment yabbEnvironment, @NonNull @VirtualThreadFactory ThreadFactory virtualThreadFactory, @NonNull JDA jda) {
+    public ActiveBirthdayScheduler(@NonNull BirthdayApi birthdayApi, @NonNull GuildApi guildApi, @NonNull YabbEnvironment yabbEnvironment, @NonNull @VirtualThreadFactory ThreadFactory virtualThreadFactory, @NonNull JDA jda) {
         this.birthdayApi = birthdayApi;
         this.guildApi = guildApi;
         this.yabbEnvironment = yabbEnvironment;
@@ -65,6 +65,8 @@ public class BirthdayNotificationScheduler {
 
         // get all the active birthdays
         // and filter the ones which have guild IDs not present in this JDA
+        // this will only be useful when the bot is horizontally split across multiple instances and shards
+        // rn it won't filter out any guilds
         List<BirthdayResponseDTO> activeBirthdayList = getActiveBirthdaysChecked()
                 .stream()
                 .filter(dto -> guildCacheSet.contains(dto.getGuildId()))
@@ -105,7 +107,7 @@ public class BirthdayNotificationScheduler {
         eb.setThumbnail(user == null ? null : user.getEffectiveAvatarUrl());
 
         eb.addField(MarkdownUtil.underline("Birthday Member"), MarkdownUtil.quoteBlock("%s (%s)").formatted(userMention, userName), false);
-        eb.addField(MarkdownUtil.underline("Birthday Time"), MarkdownUtil.quoteBlock(TimeFormat.DATE_SHORT_TIME_SHORT.format(birthdayResponseDTO.getNextBirthdayAt())), false);
+        eb.addField(MarkdownUtil.underline("Birthday Time"), MarkdownUtil.quoteBlock(TimeFormat.DATE_SHORT_TIME_SHORT.format(birthdayResponseDTO.getUpcomingBirthday())), false);
 
         eb.setFooter("Sent");
         eb.setTimestamp(Instant.now());
