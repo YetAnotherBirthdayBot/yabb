@@ -29,7 +29,7 @@ public class ExpiredBirthdayScheduler {
         this.virtualThreadFactory = virtualThreadFactory;
     }
 
-    @Scheduled(every = "48h")
+    @Scheduled(every = "60s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     public void checkExpiredBirthdays() {
         virtualThreadFactory.newThread(this::orchestrate).start();
     }

@@ -50,7 +50,7 @@ public class ActiveBirthdayScheduler {
         this.jda = jda;
     }
 
-    @Scheduled(every = "360s")
+    @Scheduled(every = "60s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     public void checkActiveBirthdays() {
         virtualThreadFactory.newThread(this::orchestrate).start();
     }
