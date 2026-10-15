@@ -4,7 +4,7 @@ import io.github.eggy03.yabb.bot.environment.YabbEnvironment;
 import io.github.eggy03.yabb.bot.utils.ErrorResponseDeserializer;
 import io.github.eggy03.yabb.client.ApiException;
 import io.github.eggy03.yabb.client.api.BirthdayApi;
-import io.github.eggy03.yabb.client.models.BirthdayRequestDTO;
+import io.github.eggy03.yabb.client.models.BirthdayDTO;
 import io.github.eggy03.yabb.client.models.ErrorResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.NonNull;
@@ -44,12 +44,12 @@ public class AdminCommandService {
         OptionMapping timeZoneOption = Objects.requireNonNull(event.getOption("time_zone"), "time_zone cannot be null");
 
         // build the dto
-        BirthdayRequestDTO birthdayRequestDTO = new BirthdayRequestDTO();
-        birthdayRequestDTO.setGuildId(guild.getIdLong());
-        birthdayRequestDTO.setUserId(birthUserOption.getAsUser().getIdLong());
-        birthdayRequestDTO.setMonth(birthMonthOption.getAsInt());
-        birthdayRequestDTO.setDay(birthDayOption.getAsInt());
-        birthdayRequestDTO.setZoneId(timeZoneOption.getAsString());
+        BirthdayDTO birthdayDTO = new BirthdayDTO();
+        birthdayDTO.setGuildId(guild.getIdLong());
+        birthdayDTO.setUserId(birthUserOption.getAsUser().getIdLong());
+        birthdayDTO.setMonth(birthMonthOption.getAsInt());
+        birthdayDTO.setDay(birthDayOption.getAsInt());
+        birthdayDTO.setZoneId(timeZoneOption.getAsString());
 
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
@@ -58,7 +58,7 @@ public class AdminCommandService {
         embedBuilder.setThumbnail(birthUserOption.getAsUser().getEffectiveAvatarUrl());
 
         try {
-            birthdayApi.saveBirthday(birthdayRequestDTO);
+            birthdayApi.saveBirthday(birthdayDTO);
 
             embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
             embedBuilder.addField(
@@ -68,9 +68,9 @@ public class AdminCommandService {
                                     .formatted(
                                             birthUserOption.getAsUser().getAsMention(),
                                             birthUserOption.getAsUser().getEffectiveName(),
-                                            birthdayRequestDTO.getDay(),
-                                            Month.of(birthdayRequestDTO.getMonth()).name(),
-                                            birthdayRequestDTO.getZoneId()
+                                            birthdayDTO.getDay(),
+                                            Month.of(birthdayDTO.getMonth()).name(),
+                                            birthdayDTO.getZoneId()
                                     )
                     ),
                     false

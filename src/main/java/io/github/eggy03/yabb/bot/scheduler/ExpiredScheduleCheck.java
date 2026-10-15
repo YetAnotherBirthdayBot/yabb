@@ -1,9 +1,8 @@
 package io.github.eggy03.yabb.bot.scheduler;
 
 import io.github.eggy03.yabb.client.ApiException;
-import io.github.eggy03.yabb.client.api.BirthdayApi;
-import io.github.eggy03.yabb.client.models.BirthdayRequestDTO;
-import io.github.eggy03.yabb.client.models.BirthdayResponseDTO;
+import io.github.eggy03.yabb.client.api.BirthdayScheduleApi;
+import io.github.eggy03.yabb.client.models.BirthdayScheduleDTO;
 import io.quarkus.scheduler.Scheduled;
 import io.smallrye.common.annotation.Blocking;
 import io.smallrye.common.annotation.RunOnVirtualThread;
@@ -23,19 +22,15 @@ import java.util.stream.Collectors;
 @Slf4j
 @ApplicationScoped
 @RequiredArgsConstructor
-public class ExpiredBirthdayScheduler {
+public class ExpiredScheduleCheck {
 
-    private final @NonNull BirthdayApi birthdayApi;
+    private final @NonNull BirthdayScheduleApi birthdayScheduleApi;
     private final @NonNull ShardManager shardManager;
 
     @Scheduled(every = "60s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     @Blocking
     @RunOnVirtualThread // don't use my custom annotation here or else concurrent execution skip will be meaningless
     public void checkExpiredBirthdays() {
-        orchestrate();
-    }
-
-    private void orchestrate() {
 
         // Get the guild IDs cached by this ShardManager instance.
         Set<Long> guildCacheSet = shardManager.getGuildCache()
@@ -43,43 +38,36 @@ public class ExpiredBirthdayScheduler {
                 .map(ISnowflake::getIdLong)
                 .collect(Collectors.toSet());
 
-        // get all the expired birthdays
+        // get all the expired birthday schedules
         // and filter the ones which have guild IDs not present in this ShardManager instance.
         // filtering makes sure that bot instances process only the guilds managed by their respective shards
-        // update expired birthdays for next year
-        getExpiredBirthdaysChecked()
+        // update expired birthday schedules for next year
+        getExpiredSchedules()
                 .stream()
                 .filter(dto -> guildCacheSet.contains(dto.getGuildId()))
-                .forEach(this::updateBirthdayForNextYearChecked);
+                .forEach(this::advanceSchedule);
     }
 
     // checked api functions (ApiException is caught and sometimes logged)
     // it's hideous to try catch them in the scheduler
-    private @NonNull @Unmodifiable List<@NonNull BirthdayResponseDTO> getExpiredBirthdaysChecked() {
+    private @NonNull @Unmodifiable List<@NonNull BirthdayScheduleDTO> getExpiredSchedules() {
         try {
-            return birthdayApi.getExpiredBirthdays()
+            return birthdayScheduleApi.getExpiredSchedules()
                     .stream()
                     .filter(Objects::nonNull)
                     .toList();
         } catch (ApiException e) {
-            log.warn("Scheduler: Failed to retrieve expired birthdays", e);
+            log.warn("Scheduler: Failed to retrieve expired birthday schedules", e);
             return List.of();
         }
     }
 
-    private void updateBirthdayForNextYearChecked(@NonNull BirthdayResponseDTO birthday) {
-
-        BirthdayRequestDTO birthdayRequestDTO = new BirthdayRequestDTO();
-        birthdayRequestDTO.setGuildId(birthday.getGuildId());
-        birthdayRequestDTO.setUserId(birthday.getUserId());
-        birthdayRequestDTO.setDay(birthday.getDay());
-        birthdayRequestDTO.setMonth(birthday.getMonth());
-        birthdayRequestDTO.setZoneId(birthday.getZoneId());
+    private void advanceSchedule(@NonNull BirthdayScheduleDTO dto) {
 
         try {
-            birthdayApi.updateBirthdayForNextYear(birthdayRequestDTO);
+            birthdayScheduleApi.advance(dto.getGuildId(), dto.getUserId());
         } catch (ApiException e) {
-            log.warn("Scheduler: Failed to update expired birthday for next year", e);
+            log.warn("Scheduler: Failed to advance expired birthday schedules", e);
         }
     }
 }

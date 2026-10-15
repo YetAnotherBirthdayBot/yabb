@@ -2,6 +2,7 @@ package io.github.eggy03.yabb.bot.configuration;
 
 import io.github.eggy03.yabb.client.ApiClient;
 import io.github.eggy03.yabb.client.api.BirthdayApi;
+import io.github.eggy03.yabb.client.api.BirthdayScheduleApi;
 import io.github.eggy03.yabb.client.api.GuildApi;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
@@ -24,6 +25,13 @@ public class YabbApiProducer {
     @ApplicationScoped
     public @NonNull BirthdayApi birthdayApi() {
         return new BirthdayApi(apiClient);
+    }
+
+    @Contract(" -> new")
+    @Produces
+    @ApplicationScoped
+    public @NonNull BirthdayScheduleApi birthdayScheduleApi() {
+        return new BirthdayScheduleApi(apiClient);
     }
 
     @Contract(" -> new")

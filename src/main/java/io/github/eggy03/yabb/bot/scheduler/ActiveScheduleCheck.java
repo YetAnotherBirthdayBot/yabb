@@ -2,10 +2,9 @@ package io.github.eggy03.yabb.bot.scheduler;
 
 import io.github.eggy03.yabb.bot.environment.YabbEnvironment;
 import io.github.eggy03.yabb.client.ApiException;
-import io.github.eggy03.yabb.client.api.BirthdayApi;
+import io.github.eggy03.yabb.client.api.BirthdayScheduleApi;
 import io.github.eggy03.yabb.client.api.GuildApi;
-import io.github.eggy03.yabb.client.models.BirthdayRequestDTO;
-import io.github.eggy03.yabb.client.models.BirthdayResponseDTO;
+import io.github.eggy03.yabb.client.models.BirthdayScheduleDTO;
 import io.github.eggy03.yabb.client.models.GuildDTO;
 import io.quarkus.scheduler.Scheduled;
 import io.smallrye.common.annotation.Blocking;
@@ -34,9 +33,9 @@ import java.util.stream.Collectors;
 @Slf4j
 @ApplicationScoped
 @RequiredArgsConstructor
-public class ActiveBirthdayScheduler {
+public class ActiveScheduleCheck {
 
-    private final @NonNull BirthdayApi birthdayApi;
+    private final @NonNull BirthdayScheduleApi birthdayScheduleApi;
     private final @NonNull GuildApi guildApi;
     private final @NonNull YabbEnvironment yabbEnvironment;
     private final @NonNull ShardManager shardManager;
@@ -44,11 +43,7 @@ public class ActiveBirthdayScheduler {
     @Scheduled(every = "60s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     @Blocking
     @RunOnVirtualThread // don't use my custom annotation here or else concurrent execution skip will be meaningless
-    public void checkActiveBirthdays() {
-        orchestrate();
-    }
-
-    private void orchestrate() {
+    public void checkActiveSchedule() {
 
         // Get the guild IDs cached by this ShardManager instance.
         Set<Long> guildCacheSet = shardManager.getGuildCache()
@@ -56,27 +51,26 @@ public class ActiveBirthdayScheduler {
                 .map(ISnowflake::getIdLong)
                 .collect(Collectors.toSet());
 
-        // get all the active birthdays
+        // get all the active birthday schedules
         // and filter the ones which have guild IDs not present in this ShardManager instance.
         // filtering makes sure that bot instances process only the guilds managed by their respective shards
 
-        // for each active birthday, check the registered guild, build the embed, send it
-        // then update birthday for next year
-        getActiveBirthdaysChecked()
+        // for each active schedule, check the registered guild, build the embed, send it
+        // then advance the schedule
+        getActiveSchedules()
                 .stream()
                 .filter(dto -> guildCacheSet.contains(dto.getGuildId()))
-                .forEach(this::sendEmbedAndUpdateBirthday);
+                .forEach(this::sendEmbedAndAdvanceSchedule);
     }
 
     // embed functions
-    private void sendEmbedAndUpdateBirthday(@NonNull BirthdayResponseDTO birthdayResponseDTO) {
+    private void sendEmbedAndAdvanceSchedule(@NonNull BirthdayScheduleDTO birthdayScheduleDTO) {
 
         // only the guilds registered to receive birthday events should receive the notifications.
-        // get the registered guild for the given birthday
         // if guild is null, it means the guild is not registered to receive birthday notifications
         // or the guild could not be resolved due to API errors.
         // in either case, exit early
-        GuildDTO guildDTO = getGuildChecked(birthdayResponseDTO.getGuildId());
+        GuildDTO guildDTO = getGuild(birthdayScheduleDTO.getGuildId());
         if (guildDTO == null)
             return;
 
@@ -91,14 +85,14 @@ public class ActiveBirthdayScheduler {
             return;
         }
 
-        // resolve the birthday user
-        User user = shardManager.getUserById(birthdayResponseDTO.getUserId());
-        String userName = user == null ? "N/A" : user.getEffectiveName();
-        String userMention = user == null ? "N/A" : user.getAsMention();
-
         // resolve the announcement role
         Role announcementRole = guildDTO.getRoleId() == null ? null : shardManager.getRoleById(guildDTO.getRoleId());
         String announcementRoleMention = announcementRole == null ? "Everyone" : announcementRole.getAsMention();
+
+        // resolve the birthday user
+        User user = shardManager.getUserById(birthdayScheduleDTO.getUserId());
+        String userName = user == null ? "N/A" : user.getEffectiveName();
+        String userMention = user == null ? "N/A" : user.getAsMention();
 
         // create the embed
         EmbedBuilder eb = new EmbedBuilder();
@@ -108,7 +102,7 @@ public class ActiveBirthdayScheduler {
         eb.setThumbnail(user == null ? null : user.getEffectiveAvatarUrl());
 
         eb.addField(MarkdownUtil.underline("Birthday Member"), MarkdownUtil.quoteBlock("%s (%s)").formatted(userMention, userName), false);
-        eb.addField(MarkdownUtil.underline("Birthday Time"), MarkdownUtil.quoteBlock(TimeFormat.DATE_SHORT_TIME_SHORT.format(birthdayResponseDTO.getUpcomingBirthday())), false);
+        eb.addField(MarkdownUtil.underline("Birthday Time"), MarkdownUtil.quoteBlock(TimeFormat.DATE_SHORT_TIME_SHORT.format(birthdayScheduleDTO.getUpcomingBirthdayAt())), false);
 
         eb.setFooter("Sent");
         eb.setTimestamp(Instant.now());
@@ -119,8 +113,8 @@ public class ActiveBirthdayScheduler {
                     .addEmbeds(eb.build())
                     .complete(); // don't use async cause this needs to complete in the scheduler lifecycle itself
 
-            // on success, update the birthday for next year
-            updateBirthdayForNextYearChecked(birthdayResponseDTO);
+            // on success, advance the birthday schedule
+            advanceSchedule(birthdayScheduleDTO);
         } catch (Exception e) {
             log.warn("Scheduler: Failed to send birthday notification", e);
         }
@@ -129,35 +123,28 @@ public class ActiveBirthdayScheduler {
     // checked api functions (ApiException is caught and sometimes logged)
     // it's hideous to try catch them in the scheduler
 
-    private @NonNull @Unmodifiable List<@NonNull BirthdayResponseDTO> getActiveBirthdaysChecked() {
+    private @NonNull @Unmodifiable List<@NonNull BirthdayScheduleDTO> getActiveSchedules() {
         try {
-            return birthdayApi.getActiveBirthdays()
+            return birthdayScheduleApi.getActiveSchedules()
                     .stream()
                     .filter(Objects::nonNull)
                     .toList();
         } catch (ApiException e) {
-            log.warn("Scheduler: Failed to retrieve active birthdays", e);
+            log.warn("Scheduler: Failed to retrieve active birthday schedules", e);
             return List.of();
         }
     }
 
-    private void updateBirthdayForNextYearChecked(@NonNull BirthdayResponseDTO birthday) {
-
-        BirthdayRequestDTO birthdayRequestDTO = new BirthdayRequestDTO();
-        birthdayRequestDTO.setGuildId(birthday.getGuildId());
-        birthdayRequestDTO.setUserId(birthday.getUserId());
-        birthdayRequestDTO.setDay(birthday.getDay());
-        birthdayRequestDTO.setMonth(birthday.getMonth());
-        birthdayRequestDTO.setZoneId(birthday.getZoneId());
+    private void advanceSchedule(@NonNull BirthdayScheduleDTO birthdayScheduleDTO) {
 
         try {
-            birthdayApi.updateBirthdayForNextYear(birthdayRequestDTO);
+            birthdayScheduleApi.advance(birthdayScheduleDTO.getGuildId(), birthdayScheduleDTO.getUserId());
         } catch (ApiException e) {
-            log.warn("Scheduler: Failed to update birthday for next year", e);
+            log.warn("Scheduler: Failed to advance birthday schedule", e);
         }
     }
 
-    private @Nullable GuildDTO getGuildChecked(long guildId) {
+    private @Nullable GuildDTO getGuild(long guildId) {
         try {
             return guildApi.getGuild(guildId);
         } catch (ApiException e) {

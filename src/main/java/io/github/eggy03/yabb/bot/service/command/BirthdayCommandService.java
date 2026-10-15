@@ -5,8 +5,9 @@ import io.github.eggy03.yabb.bot.service.EmbedCheckingService;
 import io.github.eggy03.yabb.bot.utils.ErrorResponseDeserializer;
 import io.github.eggy03.yabb.client.ApiException;
 import io.github.eggy03.yabb.client.api.BirthdayApi;
-import io.github.eggy03.yabb.client.models.BirthdayRequestDTO;
-import io.github.eggy03.yabb.client.models.BirthdayResponseDTO;
+import io.github.eggy03.yabb.client.api.BirthdayScheduleApi;
+import io.github.eggy03.yabb.client.models.BirthdayDTO;
+import io.github.eggy03.yabb.client.models.BirthdayScheduleDTO;
 import io.github.eggy03.yabb.client.models.ErrorResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.NonNull;
@@ -34,6 +35,7 @@ import java.util.stream.Collectors;
 public class BirthdayCommandService {
 
     private final @NonNull BirthdayApi birthdayApi;
+    private final @NonNull BirthdayScheduleApi birthdayScheduleApi;
     private final @NonNull YabbEnvironment yabbEnvironment;
     private final @NonNull EmbedCheckingService embedCheckingService;
 
@@ -52,12 +54,12 @@ public class BirthdayCommandService {
         OptionMapping timeZoneOption = Objects.requireNonNull(event.getOption("time_zone"), "time_zone cannot be null");
 
         // build the dto
-        BirthdayRequestDTO birthdayRequestDTO = new BirthdayRequestDTO();
-        birthdayRequestDTO.setGuildId(guild.getIdLong());
-        birthdayRequestDTO.setUserId(event.getUser().getIdLong());
-        birthdayRequestDTO.setMonth(birthMonthOption.getAsInt());
-        birthdayRequestDTO.setDay(birthDayOption.getAsInt());
-        birthdayRequestDTO.setZoneId(timeZoneOption.getAsString());
+        BirthdayDTO birthdayDTO = new BirthdayDTO();
+        birthdayDTO.setGuildId(guild.getIdLong());
+        birthdayDTO.setUserId(event.getUser().getIdLong());
+        birthdayDTO.setMonth(birthMonthOption.getAsInt());
+        birthdayDTO.setDay(birthDayOption.getAsInt());
+        birthdayDTO.setZoneId(timeZoneOption.getAsString());
 
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
@@ -66,7 +68,7 @@ public class BirthdayCommandService {
         embedBuilder.setThumbnail(event.getUser().getEffectiveAvatarUrl());
 
         try {
-            birthdayApi.saveBirthday(birthdayRequestDTO);
+            birthdayApi.saveBirthday(birthdayDTO);
 
             embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
             embedBuilder.addField(
@@ -76,9 +78,9 @@ public class BirthdayCommandService {
                                     .formatted(
                                             event.getUser().getAsMention(),
                                             event.getUser().getEffectiveName(),
-                                            birthdayRequestDTO.getDay(),
-                                            Month.of(birthdayRequestDTO.getMonth()).name(),
-                                            birthdayRequestDTO.getZoneId()
+                                            birthdayDTO.getDay(),
+                                            Month.of(birthdayDTO.getMonth()).name(),
+                                            birthdayDTO.getZoneId()
                                     )
                     ),
                     false
@@ -119,7 +121,8 @@ public class BirthdayCommandService {
         embedBuilder.setThumbnail(event.getUser().getEffectiveAvatarUrl());
 
         try {
-            BirthdayResponseDTO birthdayResponseDTO = birthdayApi.getBirthday(guild.getIdLong(), event.getUser().getIdLong());
+            BirthdayDTO birthdayDTO = birthdayApi.getBirthday(guild.getIdLong(), event.getUser().getIdLong());
+            BirthdayScheduleDTO birthdayScheduleDTO = birthdayScheduleApi.getSchedule(guild.getIdLong(), event.getUser().getIdLong());
 
             embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
             embedBuilder.addField(
@@ -129,10 +132,10 @@ public class BirthdayCommandService {
                                     .formatted(
                                             event.getUser().getAsMention(),
                                             event.getUser().getEffectiveName(),
-                                            birthdayResponseDTO.getDay(),
-                                            Month.of(birthdayResponseDTO.getMonth()).getDisplayName(TextStyle.FULL, Locale.ENGLISH),
-                                            birthdayResponseDTO.getZoneId(),
-                                            TimeFormat.DATE_SHORT_TIME_SHORT.format(birthdayResponseDTO.getUpcomingBirthday())
+                                            birthdayDTO.getDay(),
+                                            Month.of(birthdayDTO.getMonth()).getDisplayName(TextStyle.FULL, Locale.ENGLISH),
+                                            birthdayDTO.getZoneId(),
+                                            TimeFormat.DATE_SHORT_TIME_SHORT.format(birthdayScheduleDTO.getUpcomingBirthdayAt())
                                     )
                     ),
                     false
@@ -172,24 +175,24 @@ public class BirthdayCommandService {
 
         // get the dto list
         try {
-            List<BirthdayResponseDTO> birthdayResponseDTOList = birthdayApi.getBirthdays(guild.getIdLong());
+            List<BirthdayDTO> birthdayDTOList = birthdayApi.getBirthdays(guild.getIdLong());
 
             // case where birthdays are not found
-            if (birthdayResponseDTOList.isEmpty()) {
+            if (birthdayDTOList.isEmpty()) {
                 embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
                 embedBuilder.addField(MarkdownUtil.quoteBlock("No birthdays found for this guild"),"", false);
                 event.getHook().editOriginalEmbeds(embedBuilder.build()).queue();
             }
 
             // group birthdays by month
-            Map<Integer, List<BirthdayResponseDTO>> birthdayResponseDTOMap = birthdayResponseDTOList
+            Map<Integer, List<BirthdayDTO>> birthdayDTOMap = birthdayDTOList
                     .stream()
                     .filter(Objects::nonNull)
-                    .collect(Collectors.groupingBy(BirthdayResponseDTO::getMonth));
+                    .collect(Collectors.groupingBy(BirthdayDTO::getMonth));
 
             // show the same grouping in the embed
             // each field represents a month
-            birthdayResponseDTOMap.forEach((month, birthdayList) ->
+            birthdayDTOMap.forEach((month, birthdayList) ->
                     embedBuilder.addField(
                             MarkdownUtil.underline(Month.of(month).getDisplayName(TextStyle.FULL, Locale.ENGLISH)),
                             birthdayList.stream()
@@ -198,9 +201,8 @@ public class BirthdayCommandService {
                                         String userName = user == null ? "N/A" : user.getEffectiveName();
                                         String userMention = user == null ? "N/A" : user.getAsMention();
 
-                                        return "User: %s (%s) | Next Birthday: %s".formatted(
-                                                userMention, userName,
-                                                TimeFormat.DATE_SHORT_TIME_SHORT.format(dto.getUpcomingBirthday())
+                                        return "Member: %s (%s) | Birth Month: %s | Birth Day: %s".formatted(
+                                                userMention, userName, dto.getMonth(), dto.getDay()
                                         );
                                     })
                                     .collect(Collectors.joining(System.lineSeparator())),
