@@ -114,15 +114,19 @@ public class BirthdayCommandService {
         // defer reply
         event.deferReply().queue();
 
+        // get the options
+        OptionMapping birthUserOption = event.getOption("birth_user");
+        User birthUser = birthUserOption == null ? event.getUser() : birthUserOption.getAsUser();
+
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("View Birthday");
         embedBuilder.setDescription("Viewing your birthday in this guild");
-        embedBuilder.setThumbnail(event.getUser().getEffectiveAvatarUrl());
+        embedBuilder.setThumbnail(birthUser.getEffectiveAvatarUrl());
 
         try {
-            BirthdayDTO birthdayDTO = birthdayApi.getBirthday(guild.getIdLong(), event.getUser().getIdLong());
-            BirthdayScheduleDTO birthdayScheduleDTO = birthdayScheduleApi.getSchedule(guild.getIdLong(), event.getUser().getIdLong());
+            BirthdayDTO birthdayDTO = birthdayApi.getBirthday(guild.getIdLong(), birthUser.getIdLong());
+            BirthdayScheduleDTO birthdayScheduleDTO = birthdayScheduleApi.getSchedule(guild.getIdLong(), birthUser.getIdLong());
 
             embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
             embedBuilder.addField(
@@ -130,8 +134,8 @@ public class BirthdayCommandService {
                     MarkdownUtil.quoteBlock(
                             "User: %s (%s)%nBirth Day: %s%nBirth Month: %s%nTime Zone: %s%n Next Birthday: %s"
                                     .formatted(
-                                            event.getUser().getAsMention(),
-                                            event.getUser().getEffectiveName(),
+                                            birthUser.getAsMention(),
+                                            birthUser.getEffectiveName(),
                                             birthdayDTO.getDay(),
                                             Month.of(birthdayDTO.getMonth()).getDisplayName(TextStyle.FULL, Locale.ENGLISH),
                                             birthdayDTO.getZoneId(),
@@ -147,7 +151,7 @@ public class BirthdayCommandService {
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
             if (e.getCode() == 404) {
-                embedBuilder.addField("Birthday Does Not Exist", MarkdownUtil.codeblock("Birthday not found for (%s)".formatted(event.getUser().getEffectiveName())), false);
+                embedBuilder.addField("Birthday Does Not Exist", MarkdownUtil.codeblock("Birthday not found for (%s)".formatted(birthUser.getEffectiveName())), false);
             } else {
                 embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
                 log.warn("API Error during user view birthday", e);

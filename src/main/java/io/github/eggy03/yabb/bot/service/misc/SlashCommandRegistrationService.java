@@ -12,6 +12,7 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 
 @ApplicationScoped
+@SuppressWarnings("java:S1192")
 public class SlashCommandRegistrationService {
 
     public void registerCommands(@NonNull ReadyEvent event) {
@@ -41,7 +42,9 @@ public class SlashCommandRegistrationService {
                                 .addOption(OptionType.INTEGER, "birth_month", "Set your birth month", true)
                                 .addOption(OptionType.STRING, "time_zone", "IANA Time Zone", true),
 
-                        new SubcommandData("view", "Shows your saved birthday for this guild"),
+                        new SubcommandData("view", "Shows your or someone else' saved birthday for this guild")
+                                .addOption(OptionType.USER, "birth_user", "Leave this blank to view your birthday", false),
+
                         new SubcommandData("viewall", "Shows everyone's saved birthdays for this guild"),
                         new SubcommandData("delete", "Deletes your saved birthday for this guild")
                 );

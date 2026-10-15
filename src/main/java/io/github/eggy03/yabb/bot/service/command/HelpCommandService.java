@@ -28,8 +28,8 @@ public class HelpCommandService {
         eb.addField(
                 MarkdownUtil.underline("1. Config Commands"),
                 """
-                        Use `/config save [announcement_channel] [announcement_role]` to save your server configuration.
-                        Announcement role is optional.
+                        Use `/config save [announcement_channel] [announcement_role]` to save your server configuration (
+                        announcement_role is optional).
                         
                         Use `/config view` to view your server configuration.
                         Use `/config delete` to delete your server configuration.
@@ -49,7 +49,9 @@ public class HelpCommandService {
                         UTC Offset: `UTC+0530`, `UTC+0400`
                         UT  Offset:  `UT+0530`,  `UT+0400`
                         
-                        Use `/birthday view` to view your birthday.
+                        Use `/birthday view [birth_user]` to view your or someone else's birthday.
+                        Leave `birth_user` blank to view your own birthday.
+                        
                         Use `/birthday viewall` to view everyone's birthday in a guild.
                         Use `/birthday delete` to delete your birthday.
                         """,
