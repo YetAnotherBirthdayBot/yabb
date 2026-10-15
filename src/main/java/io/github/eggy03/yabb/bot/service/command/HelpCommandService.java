@@ -27,56 +27,54 @@ public class HelpCommandService {
 
         eb.addField(
                 MarkdownUtil.underline("1. Config Commands"),
-                """
-                        Use `/config save [announcement_channel] [announcement_role]` to save your server configuration (
-                        announcement_role is optional).
-                        
-                        Use `/config view` to view your server configuration.
-                        Use `/config delete` to delete your server configuration.
-                        """,
+                MarkdownUtil.quoteBlock("""
+                        Configuration allows the bot to send birthday notifications to your guild.
+                        - Use `/config save` to save your server configuration.
+                        - Use `/config view` to view your server configuration.
+                        - Use `/config delete` to delete your server configuration.
+                        """),
                 false
         );
 
         eb.addField(
                 MarkdownUtil.underline("2. Birthday Commands"),
-                """
-                        Use `/birthday save [birth_day] [birth_month] [time_zone]` to save your birthday.
-                        
-                        `time_zone` accepts a wide variety of formats. The following patterns are supported:
-                        
-                        Region Based: `America/Montreal`, `Australia/Perth`, `Europe/Paris`
-                        GMT Offset: `GMT+0530`, `GMT+0400`
-                        UTC Offset: `UTC+0530`, `UTC+0400`
-                        UT  Offset:  `UT+0530`,  `UT+0400`
-                        
-                        Use `/birthday view [birth_user]` to view your or someone else's birthday.
-                        Leave `birth_user` blank to view your own birthday.
-                        
-                        Use `/birthday viewall` to view everyone's birthday in a guild.
-                        Use `/birthday delete` to delete your birthday.
-                        """,
+                MarkdownUtil.quoteBlock("""
+                        - Use `/birthday save` to save your birthday.
+                        - Use `/birthday view` to view your or someone else's birthday.
+                        - Use `/birthday viewall` to view everyone's birthday in a guild.
+                        - Use `/birthday delete` to delete your birthday.
+                        """),
                 false
         );
 
         eb.addField(
                 MarkdownUtil.underline("3. Admin Commands"),
-                """
-                        Use `/admin savebirthday [birth_user] [birth_day] [birth_month] [time_zone]` to save someone's birthday.
-
-                        Use `/admin deletebirthday [birth_user]` to delete someone's birthday.
-                        """,
+                MarkdownUtil.quoteBlock("""
+                        - Use `/admin savebirthday` to save someone's birthday.
+                        - Use `/admin deletebirthday` to delete someone's birthday.
+                        """),
                 false
         );
 
-
-        eb.addBlankField(false);
         eb.addField(
-                MarkdownUtil.underline("Permissions"),
-                """
-                        `/config` requires `MANAGE_SERVER` and above.
-                        `/birthday` requires no special permissions.
-                        `/admin` requires `ADMINISTRATOR` and above.
-                        """,
+                MarkdownUtil.underline("4. Timezones"),
+                MarkdownUtil.quoteBlock("""
+                        `/birthday save` and `/admin savebirthday` accept time zone in one of the following patterns:
+                        - Region Based : `America/Montreal`, `Australia/Perth`, `Europe/Paris`
+                        - GMT Offset   : `GMT+0530`, `GMT+0400`
+                        - UTC Offset   : `UTC+0530`, `UTC+0400`
+                        - UT  Offset   : `UT+0530`,  `UT+0400`
+                        """),
+                false
+        );
+
+        eb.addField(
+                MarkdownUtil.underline("5. Permissions"),
+                MarkdownUtil.quoteBlock("""
+                        - `/config` requires `MANAGE_SERVER` and above.
+                        - `/birthday` requires no special permissions.
+                        - `/admin` requires `ADMINISTRATOR` and above.
+                        """),
                 false
         );
 
