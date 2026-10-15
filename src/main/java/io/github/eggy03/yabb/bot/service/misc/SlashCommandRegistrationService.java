@@ -67,7 +67,10 @@ public class SlashCommandRegistrationService {
                 );
 
         // general commands
-        CommandData help = Commands.slash("help", "Get setup and usage instructions");
+        CommandData help = Commands
+                .slash("help", "Get setup and usage instructions")
+                .setContexts(InteractionContextType.GUILD)
+                .setDefaultPermissions(DefaultMemberPermissions.ENABLED);
 
         event.getJDA()
                 .updateCommands()
