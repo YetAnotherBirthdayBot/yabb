@@ -121,7 +121,7 @@ public class BirthdayCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("View Birthday");
-        embedBuilder.setDescription("Viewing your birthday in this guild");
+        embedBuilder.setDescription("Viewing someone's birthday in this guild");
         embedBuilder.setThumbnail(birthUser.getEffectiveAvatarUrl());
 
         try {
