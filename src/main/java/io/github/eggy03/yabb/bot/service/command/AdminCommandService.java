@@ -54,7 +54,7 @@ public class AdminCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("Admin Save Birthday");
-        embedBuilder.setDescription("Saving %s's birthday in this guild".formatted(birthUserOption.getAsUser().getEffectiveName()));
+        embedBuilder.setDescription("This action is constructive");
         embedBuilder.setThumbnail(birthUserOption.getAsUser().getEffectiveAvatarUrl());
 
         try {
@@ -111,7 +111,7 @@ public class AdminCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("Admin Delete Birthday");
-        embedBuilder.setDescription("Deleting %s's birthday from this guild".formatted(birthUserOption.getAsUser().getEffectiveName()));
+        embedBuilder.setDescription("This action is destructive");
         embedBuilder.setThumbnail(birthUserOption.getAsUser().getEffectiveAvatarUrl());
 
         try {

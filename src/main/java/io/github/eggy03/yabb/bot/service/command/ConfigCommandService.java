@@ -57,7 +57,7 @@ public class ConfigCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("Save Configuration");
-        embedBuilder.setDescription("Saving configuration for this guild");
+        embedBuilder.setDescription("This action is constructive");
         embedBuilder.setThumbnail(guild.getIconUrl());
 
         try {
@@ -103,7 +103,7 @@ public class ConfigCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("View Configuration");
-        embedBuilder.setDescription("Viewing configuration for this guild");
+        embedBuilder.setDescription("This action is read-only");
         embedBuilder.setThumbnail(guild.getIconUrl());
 
         try {
@@ -155,7 +155,7 @@ public class ConfigCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("Delete Configuration");
-        embedBuilder.setDescription("Deleting configuration for this guild");
+        embedBuilder.setDescription("This action is destructive");
         embedBuilder.setThumbnail(guild.getIconUrl());
 
         try {

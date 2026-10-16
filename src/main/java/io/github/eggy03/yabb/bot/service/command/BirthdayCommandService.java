@@ -64,7 +64,7 @@ public class BirthdayCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("Save Birthday");
-        embedBuilder.setDescription("Saving your birthday in this guild");
+        embedBuilder.setDescription("This action is constructive");
         embedBuilder.setThumbnail(event.getUser().getEffectiveAvatarUrl());
 
         try {
@@ -121,7 +121,7 @@ public class BirthdayCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("View Birthday");
-        embedBuilder.setDescription("Viewing someone's birthday in this guild");
+        embedBuilder.setDescription("This action is read-only");
         embedBuilder.setThumbnail(birthUser.getEffectiveAvatarUrl());
 
         try {
@@ -173,8 +173,8 @@ public class BirthdayCommandService {
 
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
-        embedBuilder.setTitle("View Everyone's Birthday");
-        embedBuilder.setDescription("Viewing everyone's birthday in this guild");
+        embedBuilder.setTitle("View Birthdays");
+        embedBuilder.setDescription("This action is read-only");
         embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
 
         // get the dto list
@@ -184,8 +184,9 @@ public class BirthdayCommandService {
             // case where birthdays are not found
             if (birthdayDTOList.isEmpty()) {
                 embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
-                embedBuilder.addField(MarkdownUtil.quoteBlock("No birthdays found for this guild"),"", false);
+                embedBuilder.addField(MarkdownUtil.quoteBlock(""),"No birthdays found for this guild", false);
                 event.getHook().editOriginalEmbeds(embedBuilder.build()).queue();
+                return;
             }
 
             // group birthdays by month
@@ -246,7 +247,7 @@ public class BirthdayCommandService {
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("Delete Birthday");
-        embedBuilder.setDescription("Deleting your birthday from this guild");
+        embedBuilder.setDescription("This action is destructive");
         embedBuilder.setThumbnail(event.getUser().getEffectiveAvatarUrl());
 
         try {
