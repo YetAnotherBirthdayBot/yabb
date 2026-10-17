@@ -18,6 +18,6 @@ public class SelfKickListener extends ListenerAdapter {
 
     @Override
     public void onGuildLeave(@NonNull GuildLeaveEvent event) {
-        selfKickService.removeGuildAndRelatedBirthdays(event);
+        selfKickService.removeConfigAndRelatedBirthdays(event);
     }
 }

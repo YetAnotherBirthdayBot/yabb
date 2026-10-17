@@ -3,9 +3,9 @@ package io.github.eggy03.yabb.bot.service.command;
 import io.github.eggy03.yabb.bot.environment.YabbEnvironment;
 import io.github.eggy03.yabb.bot.utils.ErrorResponseDeserializer;
 import io.github.eggy03.yabb.client.ApiException;
-import io.github.eggy03.yabb.client.api.GuildApi;
+import io.github.eggy03.yabb.client.api.ConfigApi;
+import io.github.eggy03.yabb.client.models.ConfigDTO;
 import io.github.eggy03.yabb.client.models.ErrorResponse;
-import io.github.eggy03.yabb.client.models.GuildDTO;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -23,11 +23,11 @@ import java.util.Objects;
 @Slf4j
 public class ConfigCommandService {
 
-    private final @NonNull GuildApi guildApi;
+    private final @NonNull ConfigApi configApi;
     private final @NonNull YabbEnvironment yabbEnvironment;
 
-    public ConfigCommandService(@NonNull GuildApi guildApi, @NonNull YabbEnvironment yabbEnvironment) {
-        this.guildApi = guildApi;
+    public ConfigCommandService(@NonNull ConfigApi configApi, @NonNull YabbEnvironment yabbEnvironment) {
+        this.configApi = configApi;
         this.yabbEnvironment = yabbEnvironment;
     }
 
@@ -49,10 +49,10 @@ public class ConfigCommandService {
         Role announcementRole = roleOption == null ? null : roleOption.getAsRole();
 
         // build the dto
-        GuildDTO guildDTO = new GuildDTO();
-        guildDTO.setGuildId(event.getGuild().getIdLong());
-        guildDTO.setChannelId(announcementChannel.getIdLong());
-        guildDTO.setRoleId(announcementRole == null ? null : announcementRole.getIdLong());
+        ConfigDTO configDTO = new ConfigDTO();
+        configDTO.setGuildId(event.getGuild().getIdLong());
+        configDTO.setChannelId(announcementChannel.getIdLong());
+        configDTO.setRoleId(announcementRole == null ? null : announcementRole.getIdLong());
 
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
@@ -61,7 +61,7 @@ public class ConfigCommandService {
         embedBuilder.setThumbnail(guild.getIconUrl());
 
         try {
-            guildApi.saveGuild(guildDTO);
+            configApi.saveConfig(configDTO);
 
             embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
             embedBuilder.addField(
@@ -107,10 +107,10 @@ public class ConfigCommandService {
         embedBuilder.setThumbnail(guild.getIconUrl());
 
         try {
-            GuildDTO guildDTO = guildApi.getGuild(guild.getIdLong());
+            ConfigDTO configDTO = configApi.getConfig(guild.getIdLong());
 
-            TextChannel announcementChanel = guild.getTextChannelById(guildDTO.getChannelId());
-            Role announcementRole = guildDTO.getRoleId() == null ? null : guild.getRoleById(guildDTO.getRoleId());
+            TextChannel announcementChanel = guild.getTextChannelById(configDTO.getChannelId());
+            Role announcementRole = configDTO.getRoleId() == null ? null : guild.getRoleById(configDTO.getRoleId());
 
             String announcementChannelMention = announcementChanel == null ? "N/A" : announcementChanel.getAsMention();
             String announcementRoleMention = announcementRole == null ? "N/A" : announcementRole.getAsMention();
@@ -159,7 +159,7 @@ public class ConfigCommandService {
         embedBuilder.setThumbnail(guild.getIconUrl());
 
         try {
-            guildApi.deleteGuild(guild.getIdLong());
+            configApi.deleteConfig(guild.getIdLong());
 
             embedBuilder.setColor(yabbEnvironment.embedColor().destructiveColor());
             embedBuilder.addField(

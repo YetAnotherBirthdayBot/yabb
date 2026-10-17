@@ -3,7 +3,7 @@ package io.github.eggy03.yabb.bot.configuration;
 import io.github.eggy03.yabb.client.ApiClient;
 import io.github.eggy03.yabb.client.api.BirthdayApi;
 import io.github.eggy03.yabb.client.api.BirthdayScheduleApi;
-import io.github.eggy03.yabb.client.api.GuildApi;
+import io.github.eggy03.yabb.client.api.ConfigApi;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
@@ -37,7 +37,7 @@ public class YabbApiProducer {
     @Contract(" -> new")
     @Produces
     @ApplicationScoped
-    public @NonNull GuildApi guildApi() {
-        return new GuildApi(apiClient);
+    public @NonNull ConfigApi configApi() {
+        return new ConfigApi(apiClient);
     }
 }

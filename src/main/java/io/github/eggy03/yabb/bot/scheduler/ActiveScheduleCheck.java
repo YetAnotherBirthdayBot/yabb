@@ -3,9 +3,9 @@ package io.github.eggy03.yabb.bot.scheduler;
 import io.github.eggy03.yabb.bot.environment.YabbEnvironment;
 import io.github.eggy03.yabb.client.ApiException;
 import io.github.eggy03.yabb.client.api.BirthdayScheduleApi;
-import io.github.eggy03.yabb.client.api.GuildApi;
+import io.github.eggy03.yabb.client.api.ConfigApi;
 import io.github.eggy03.yabb.client.models.BirthdayScheduleDTO;
-import io.github.eggy03.yabb.client.models.GuildDTO;
+import io.github.eggy03.yabb.client.models.ConfigDTO;
 import io.quarkus.scheduler.Scheduled;
 import io.smallrye.common.annotation.Blocking;
 import io.smallrye.common.annotation.RunOnVirtualThread;
@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 public class ActiveScheduleCheck {
 
     private final @NonNull BirthdayScheduleApi birthdayScheduleApi;
-    private final @NonNull GuildApi guildApi;
+    private final @NonNull ConfigApi configApi;
     private final @NonNull YabbEnvironment yabbEnvironment;
     private final @NonNull ShardManager shardManager;
 
@@ -67,15 +67,15 @@ public class ActiveScheduleCheck {
     private void sendEmbedAndAdvanceSchedule(@NonNull BirthdayScheduleDTO birthdayScheduleDTO) {
 
         // only the guilds registered to receive birthday events should receive the notifications.
-        // if guild is null, it means the guild is not registered to receive birthday notifications
-        // or the guild could not be resolved due to API errors.
+        // if config is null, it means the guild is not registered to receive birthday notifications
+        // or the config could not be resolved due to API errors.
         // in either case, exit early
-        GuildDTO guildDTO = getGuild(birthdayScheduleDTO.getGuildId());
-        if (guildDTO == null)
+        ConfigDTO configDTO = getConfig(birthdayScheduleDTO.getGuildId());
+        if (configDTO == null)
             return;
 
         // resolve the channel to which the notification will be sent
-        TextChannel textChannel = shardManager.getTextChannelById(guildDTO.getChannelId());
+        TextChannel textChannel = shardManager.getTextChannelById(configDTO.getChannelId());
         if (textChannel == null)
             return;
 
@@ -86,7 +86,7 @@ public class ActiveScheduleCheck {
         }
 
         // resolve the announcement role
-        Role announcementRole = guildDTO.getRoleId() == null ? null : shardManager.getRoleById(guildDTO.getRoleId());
+        Role announcementRole = configDTO.getRoleId() == null ? null : shardManager.getRoleById(configDTO.getRoleId());
         String announcementRoleMention = announcementRole == null ? "Everyone" : announcementRole.getAsMention();
 
         // resolve the birthday user
@@ -116,7 +116,9 @@ public class ActiveScheduleCheck {
             // on success, advance the birthday schedule
             advanceSchedule(birthdayScheduleDTO);
         } catch (Exception e) {
-            log.warn("Scheduler: Failed to send birthday notification", e);
+            log.warn("Scheduler: Failed to send birthday notification for user:[{}], having userId:[{}], in guild: [{}]",
+                    userName, birthdayScheduleDTO.getUserId(), birthdayScheduleDTO.getGuildId(), e
+            );
         }
     }
 
@@ -140,15 +142,17 @@ public class ActiveScheduleCheck {
         try {
             birthdayScheduleApi.advance(birthdayScheduleDTO.getGuildId(), birthdayScheduleDTO.getUserId());
         } catch (ApiException e) {
-            log.warn("Scheduler: Failed to advance birthday schedule", e);
+            log.warn("Scheduler: Failed to advance birthday schedule for guildId: [{}], userId: [{}]",
+                    birthdayScheduleDTO.getGuildId(), birthdayScheduleDTO.getUserId(), e
+            );
         }
     }
 
-    private @Nullable GuildDTO getGuild(long guildId) {
+    private @Nullable ConfigDTO getConfig(long guildId) {
         try {
-            return guildApi.getGuild(guildId);
+            return configApi.getConfig(guildId);
         } catch (ApiException e) {
-            log.debug("Scheduler: Failed to retrieve guild", e);
+            log.debug("Scheduler: Failed to retrieve configuration for guildId: [{}]", guildId, e);
             return null;
         }
     }
