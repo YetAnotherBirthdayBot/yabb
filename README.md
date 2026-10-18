@@ -1,40 +1,89 @@
-<div align="center">
-  <img
-    src="icon/yabb_150.png"
-    alt="logo_yabb"
-    width="150"
-    height="150"
-  />
+_Last Updated : October 18, 2026_
 
-<h2>YABB</h2>
-<h4>Logo sourced from Google Material Icons, colored using MS Paint</h4>
-</div>
+# Deployment Guide for YABB and it's related services
 
-# Overview
+> [!IMPORTANT]
+>
+> This guide assumes you already have a working PostgreSQL instance or know how to set up one.
 
-YABB (Yet Another Birthday Bot), as the name suggests, is another birthday utility bot for Discord.
-Like most birthday bots, YABB allows you to save your birthday in a server,
-check your birthday and of others', and get notified
-whenever a birthday event occurs.
+## Step 1: Create a bot in the Discord Dev Portal
 
-The configuration is strict and minimal, making it easy to set up.
-However, this also means there is very little room for customization.
+Go to the [Discord Developer Portal](https://discord.com/developers/applications) and create an application.
 
-# Setting Up
+Give it the following intents and permissions:
 
-Right now, the only option is to self-host your own instance of the bot.
-If time and resources permit, I might set up a public instance in the future.
+**Installation Contexts**
 
-The self-host guide can be found [here](/docs/DEPLOYMENT.md).
+1) Guild Install
 
-# Usage Instructions
+**Scopes**
 
-The `/help` command shows a list of all the available commands you can use.
+1) applications.commands
+2) bot
 
-# Support
+**Permissions**
 
-I worked on developing this bot during my school holidays
-and while its features are limited, I mostly consider this bot to be feature-complete.
+1) Attach Files
+2) Embed Links
+3) Send Messages
+4) Send Messages In Threads
+5) View Channels
 
-I'll always patch the bot to keep it up and running and work on bug fixes and small features,
-but due to time constraints, I probably won't be able to work on implementing major changes or features.
+**Privileged Gateway Intents**
+
+1) Server Members Intent
+
+Note down the `TOKEN` since it will be shown only once and will be required in the later steps.
+
+## Step 2: Deploying the API and the Bot
+
+### 2.1: Get Required Variables
+
+| Variable      | Description/Format                                                   | Default Value    | Optional |
+|---------------|----------------------------------------------------------------------|------------------|----------|
+| `DB_URL`      | jdbc:postgresql://<DATABASE_HOST>:<DATABASE_PORT>/<DATABASE_NAME>    | No Default Value | No       |
+| `DB_USERNAME` | Database Username                                                    | No Default Value | No       |
+| `DB_PASSWORD` | Database Password                                                    | No Default Value | No       |
+| `TOKEN`       | Get from the dev portal                                              | No Default Value | No       |
+
+### 2.2: Deployment
+
+Use the following docker compose setup to deploy both the bot and the API
+
+```yaml
+networks:
+  yabb-network:
+
+services:
+  api:
+    container_name: yabb-api
+    image: ghcr.io/yetanotherbirthdaybot/yabb-api-native:latest
+    environment:
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - yabb-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/q/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  bot:
+    container_name: yabb-bot
+    image: ghcr.io/yetanotherbirthdaybot/yabb-bot:latest
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      TOKEN: ${TOKEN}
+      API_URL: http://yabb-api:8080
+    networks:
+      - yabb-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/q/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+```
