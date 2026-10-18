@@ -184,7 +184,7 @@ public class BirthdayCommandService {
             // case where birthdays are not found
             if (birthdayDTOList.isEmpty()) {
                 embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
-                embedBuilder.addField(MarkdownUtil.quoteBlock(""),"No birthdays found for this guild", false);
+                embedBuilder.addField("Uh Oh!","No birthdays found for this guild", false);
                 event.getHook().editOriginalEmbeds(embedBuilder.build()).queue();
                 return;
             }
@@ -206,9 +206,7 @@ public class BirthdayCommandService {
                                         String userName = user == null ? "N/A" : user.getEffectiveName();
                                         String userMention = user == null ? "N/A" : user.getAsMention();
 
-                                        return "Member: %s (%s) | Birth Month: %s | Birth Day: %s".formatted(
-                                                userMention, userName, dto.getMonth(), dto.getDay()
-                                        );
+                                        return MarkdownUtil.quote("[%s]-[%s]-[%s]".formatted(userMention, userName, dto.getDay()));
                                     })
                                     .collect(Collectors.joining(System.lineSeparator())),
                             false
