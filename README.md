@@ -72,7 +72,7 @@ services:
 
   bot:
     container_name: yabb-bot
-    image: ghcr.io/yetanotherbirthdaybot/yabb-bot:latest
+    image: ghcr.io/yetanotherbirthdaybot/yabb:latest
     depends_on:
       api:
         condition: service_healthy
