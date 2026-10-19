@@ -25,9 +25,10 @@ Give it the following intents and permissions:
 
 1) Attach Files
 2) Embed Links
-3) Send Messages
-4) Send Messages In Threads
-5) View Channels
+3) Mention Everyone
+4) Send Messages
+5) Send Messages In Threads
+6) View Channels
 
 **Privileged Gateway Intents**
 
