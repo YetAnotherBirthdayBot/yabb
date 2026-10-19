@@ -64,6 +64,8 @@ public class HelpCommandService {
                         - GMT Offset   : `GMT+0530`, `GMT+0400`
                         - UTC Offset   : `UTC+0530`, `UTC+0400`
                         - UT  Offset   : `UT+0530`,  `UT+0400`
+                        
+                        Refer to the [IANA TimeZone Database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) to find your zone IDs and offsets.
                         """),
                 false
         );
