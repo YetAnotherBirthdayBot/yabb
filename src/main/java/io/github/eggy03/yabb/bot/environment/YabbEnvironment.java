@@ -9,7 +9,6 @@ public interface YabbEnvironment {
 
     General general();
     Discord discord();
-    API api();
     EmbedColor embedColor();
 
     interface General {
@@ -24,13 +23,6 @@ public interface YabbEnvironment {
         @WithName("token")
         @NonNull
         String token();
-    }
-
-    interface API {
-
-        @WithName("url")
-        @NonNull
-        String url();
     }
 
     interface EmbedColor {

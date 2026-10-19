@@ -1,17 +1,16 @@
 package io.github.eggy03.yabb.bot.service.command;
 
+import io.github.eggy03.yabb.bot.client.exception.ApiException;
+import io.github.eggy03.yabb.bot.client.interfaces.BirthdayClient;
+import io.github.eggy03.yabb.bot.client.interfaces.BirthdayScheduleClient;
+import io.github.eggy03.yabb.bot.client.model.ApiError;
+import io.github.eggy03.yabb.bot.client.model.BirthdayDTO;
+import io.github.eggy03.yabb.bot.client.model.BirthdayScheduleDTO;
 import io.github.eggy03.yabb.bot.environment.YabbEnvironment;
 import io.github.eggy03.yabb.bot.service.EmbedCheckingService;
-import io.github.eggy03.yabb.bot.utils.ErrorResponseDeserializer;
-import io.github.eggy03.yabb.client.ApiException;
-import io.github.eggy03.yabb.client.api.BirthdayApi;
-import io.github.eggy03.yabb.client.api.BirthdayScheduleApi;
-import io.github.eggy03.yabb.client.models.BirthdayDTO;
-import io.github.eggy03.yabb.client.models.BirthdayScheduleDTO;
-import io.github.eggy03.yabb.client.models.ErrorResponse;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
@@ -20,6 +19,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.utils.MarkdownUtil;
 import net.dv8tion.jda.api.utils.TimeFormat;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import java.time.Month;
 import java.time.format.TextStyle;
@@ -31,13 +31,20 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @ApplicationScoped
-@RequiredArgsConstructor
 public class BirthdayCommandService {
 
-    private final @NonNull BirthdayApi birthdayApi;
-    private final @NonNull BirthdayScheduleApi birthdayScheduleApi;
+    private final @NonNull BirthdayClient birthdayClient;
+    private final @NonNull BirthdayScheduleClient birthdayScheduleClient;
     private final @NonNull YabbEnvironment yabbEnvironment;
     private final @NonNull EmbedCheckingService embedCheckingService;
+
+    @Inject
+    public BirthdayCommandService(@NonNull @RestClient BirthdayClient birthdayClient, @NonNull @RestClient BirthdayScheduleClient birthdayScheduleClient, @NonNull YabbEnvironment yabbEnvironment, @NonNull EmbedCheckingService embedCheckingService) {
+        this.birthdayClient = birthdayClient;
+        this.birthdayScheduleClient = birthdayScheduleClient;
+        this.yabbEnvironment = yabbEnvironment;
+        this.embedCheckingService = embedCheckingService;
+    }
 
     public void handleSave(@NonNull SlashCommandInteractionEvent event) {
         // null guild means the command was from a DM
@@ -54,12 +61,13 @@ public class BirthdayCommandService {
         OptionMapping timeZoneOption = Objects.requireNonNull(event.getOption("time_zone"), "time_zone cannot be null");
 
         // build the dto
-        BirthdayDTO birthdayDTO = new BirthdayDTO();
-        birthdayDTO.setGuildId(guild.getIdLong());
-        birthdayDTO.setUserId(event.getUser().getIdLong());
-        birthdayDTO.setMonth(birthMonthOption.getAsInt());
-        birthdayDTO.setDay(birthDayOption.getAsInt());
-        birthdayDTO.setZoneId(timeZoneOption.getAsString());
+        BirthdayDTO birthdayDTO = new BirthdayDTO(
+                guild.getIdLong(),
+                event.getUser().getIdLong(),
+                birthMonthOption.getAsInt(),
+                birthDayOption.getAsInt(),
+                timeZoneOption.getAsString()
+        );
 
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
@@ -68,7 +76,7 @@ public class BirthdayCommandService {
         embedBuilder.setThumbnail(event.getUser().getEffectiveAvatarUrl());
 
         try {
-            birthdayApi.saveBirthday(birthdayDTO);
+            birthdayClient.saveBirthday(birthdayDTO);
 
             embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
             embedBuilder.addField(
@@ -91,9 +99,9 @@ public class BirthdayCommandService {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
-            ErrorResponse errorResponse = ErrorResponseDeserializer.fromApiException(e);
-            switch (e.getCode()) {
-                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(errorResponse.getMessage()), false);
+            ApiError apiError = e.getError();
+            switch (apiError.getStatus()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.getMessage()), false);
                 case 409 -> embedBuilder.addField("Birthday Already Exists", MarkdownUtil.codeblock("Birthday for (%s) already exists".formatted(event.getUser().getEffectiveName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
@@ -125,8 +133,8 @@ public class BirthdayCommandService {
         embedBuilder.setThumbnail(birthUser.getEffectiveAvatarUrl());
 
         try {
-            BirthdayDTO birthdayDTO = birthdayApi.getBirthday(guild.getIdLong(), birthUser.getIdLong());
-            BirthdayScheduleDTO birthdayScheduleDTO = birthdayScheduleApi.getSchedule(guild.getIdLong(), birthUser.getIdLong());
+            BirthdayDTO birthdayDTO = birthdayClient.getBirthday(guild.getIdLong(), birthUser.getIdLong());
+            BirthdayScheduleDTO birthdayScheduleDTO = birthdayScheduleClient.getSchedule(guild.getIdLong(), birthUser.getIdLong());
 
             embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
             embedBuilder.addField(
@@ -150,7 +158,7 @@ public class BirthdayCommandService {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
-            if (e.getCode() == 404) {
+            if (e.getStatusCode() == 404) {
                 embedBuilder.addField("Birthday Does Not Exist", MarkdownUtil.codeblock("Birthday not found for (%s)".formatted(birthUser.getEffectiveName())), false);
             } else {
                 embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
@@ -179,7 +187,7 @@ public class BirthdayCommandService {
 
         // get the dto list
         try {
-            List<BirthdayDTO> birthdayDTOList = birthdayApi.getBirthdays(guild.getIdLong());
+            List<BirthdayDTO> birthdayDTOList = birthdayClient.getBirthdays(guild.getIdLong());
 
             // case where birthdays are not found
             if (birthdayDTOList.isEmpty()) {
@@ -219,9 +227,9 @@ public class BirthdayCommandService {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
-            ErrorResponse errorResponse = ErrorResponseDeserializer.fromApiException(e);
-            if (e.getCode() == 400) {
-                embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(errorResponse.getMessage()), false);
+            ApiError apiError = e.getError();
+            if (apiError.getStatus() == 400) {
+                embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.getMessage()), false);
             } else {
                 embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
                 log.warn("API Error during user view all birthdays", e);
@@ -249,7 +257,7 @@ public class BirthdayCommandService {
         embedBuilder.setThumbnail(event.getUser().getEffectiveAvatarUrl());
 
         try {
-            birthdayApi.deleteBirthday(guild.getIdLong(), event.getUser().getIdLong());
+            birthdayClient.deleteBirthday(guild.getIdLong(), event.getUser().getIdLong());
 
             embedBuilder.setColor(yabbEnvironment.embedColor().destructiveColor());
             embedBuilder.addField(
@@ -263,9 +271,9 @@ public class BirthdayCommandService {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
-            ErrorResponse errorResponse = ErrorResponseDeserializer.fromApiException(e);
-            switch (e.getCode()) {
-                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(errorResponse.getMessage()), false);
+            ApiError apiError = e.getError();
+            switch (apiError.getStatus()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.getMessage()), false);
                 case 404 -> embedBuilder.addField("Birthday Does Not Exist", MarkdownUtil.codeblock("Birthday not found for (%s)".formatted(event.getUser().getEffectiveName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);

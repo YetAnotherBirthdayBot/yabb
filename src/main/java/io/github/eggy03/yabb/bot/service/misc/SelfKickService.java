@@ -1,15 +1,16 @@
 package io.github.eggy03.yabb.bot.service.misc;
 
 import io.github.eggy03.yabb.bot.annotations.VirtualThreadFactory;
-import io.github.eggy03.yabb.client.ApiException;
-import io.github.eggy03.yabb.client.api.BirthdayApi;
-import io.github.eggy03.yabb.client.api.ConfigApi;
+import io.github.eggy03.yabb.bot.client.exception.ApiException;
+import io.github.eggy03.yabb.bot.client.interfaces.BirthdayClient;
+import io.github.eggy03.yabb.bot.client.interfaces.ConfigClient;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import java.util.concurrent.ThreadFactory;
 
@@ -17,14 +18,14 @@ import java.util.concurrent.ThreadFactory;
 @ApplicationScoped
 public class SelfKickService {
 
-    private final @NonNull ConfigApi configApi;
-    private final @NonNull BirthdayApi birthdayApi;
+    private final @NonNull ConfigClient configClient;
+    private final @NonNull BirthdayClient birthdayClient;
     private final @NonNull ThreadFactory virtualThreadFactory;
 
     @Inject
-    public SelfKickService(@NonNull ConfigApi configApi, @NonNull BirthdayApi birthdayApi, @NonNull @VirtualThreadFactory ThreadFactory virtualThreadFactory) {
-        this.configApi = configApi;
-        this.birthdayApi = birthdayApi;
+    public SelfKickService(@NonNull @RestClient ConfigClient configClient, @NonNull @RestClient BirthdayClient birthdayClient, @NonNull @VirtualThreadFactory ThreadFactory virtualThreadFactory) {
+        this.configClient = configClient;
+        this.birthdayClient = birthdayClient;
         this.virtualThreadFactory = virtualThreadFactory;
     }
 
@@ -34,10 +35,10 @@ public class SelfKickService {
         virtualThreadFactory
                 .newThread(() -> {
                     try {
-                        configApi.deleteConfig(leftGuild.getIdLong());
-                        birthdayApi.deleteBirthdays(leftGuild.getIdLong());
+                        configClient.deleteConfig(leftGuild.getIdLong());
+                        birthdayClient.deleteBirthdayByGuild(leftGuild.getIdLong());
                     } catch (ApiException e) {
-                        log.warn("Failed to unregister bot on self kick event\n{}", e.getResponseBody());
+                        log.warn("Failed to unregister bot on self kick event", e);
                     }
                 })
                 .start();

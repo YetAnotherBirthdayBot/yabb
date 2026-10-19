@@ -1,17 +1,16 @@
 package io.github.eggy03.yabb.bot.scheduler;
 
+import io.github.eggy03.yabb.bot.client.interfaces.BirthdayScheduleClient;
+import io.github.eggy03.yabb.bot.client.interfaces.ConfigClient;
+import io.github.eggy03.yabb.bot.client.model.BirthdayScheduleDTO;
+import io.github.eggy03.yabb.bot.client.model.ConfigDTO;
 import io.github.eggy03.yabb.bot.environment.YabbEnvironment;
-import io.github.eggy03.yabb.client.ApiException;
-import io.github.eggy03.yabb.client.api.BirthdayScheduleApi;
-import io.github.eggy03.yabb.client.api.ConfigApi;
-import io.github.eggy03.yabb.client.models.BirthdayScheduleDTO;
-import io.github.eggy03.yabb.client.models.ConfigDTO;
 import io.quarkus.scheduler.Scheduled;
 import io.smallrye.common.annotation.Blocking;
 import io.smallrye.common.annotation.RunOnVirtualThread;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.ISnowflake;
@@ -21,6 +20,7 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.utils.MarkdownUtil;
 import net.dv8tion.jda.api.utils.TimeFormat;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jetbrains.annotations.Unmodifiable;
 import org.jspecify.annotations.Nullable;
 
@@ -32,13 +32,20 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @ApplicationScoped
-@RequiredArgsConstructor
 public class ActiveScheduleCheck {
 
-    private final @NonNull BirthdayScheduleApi birthdayScheduleApi;
-    private final @NonNull ConfigApi configApi;
+    private final @NonNull BirthdayScheduleClient birthdayScheduleClient;
+    private final @NonNull ConfigClient configClient;
     private final @NonNull YabbEnvironment yabbEnvironment;
     private final @NonNull ShardManager shardManager;
+
+    @Inject
+    public ActiveScheduleCheck(@NonNull @RestClient BirthdayScheduleClient birthdayScheduleClient, @NonNull @RestClient ConfigClient configClient, @NonNull YabbEnvironment yabbEnvironment, @NonNull ShardManager shardManager) {
+        this.birthdayScheduleClient = birthdayScheduleClient;
+        this.configClient = configClient;
+        this.yabbEnvironment = yabbEnvironment;
+        this.shardManager = shardManager;
+    }
 
     @Scheduled(every = "60s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     @Blocking
@@ -122,16 +129,16 @@ public class ActiveScheduleCheck {
         }
     }
 
-    // checked api functions (ApiException is caught and sometimes logged)
+    // checked api functions (All exceptions are caught and sometimes logged)
     // it's hideous to try catch them in the scheduler
 
     private @NonNull @Unmodifiable List<@NonNull BirthdayScheduleDTO> getActiveSchedules() {
         try {
-            return birthdayScheduleApi.getActiveSchedules()
+            return birthdayScheduleClient.getActiveSchedules()
                     .stream()
                     .filter(Objects::nonNull)
                     .toList();
-        } catch (ApiException e) {
+        } catch (Exception e) {
             log.warn("Scheduler: Failed to retrieve active birthday schedules", e);
             return List.of();
         }
@@ -140,8 +147,8 @@ public class ActiveScheduleCheck {
     private void advanceSchedule(@NonNull BirthdayScheduleDTO birthdayScheduleDTO) {
 
         try {
-            birthdayScheduleApi.advance(birthdayScheduleDTO.getGuildId(), birthdayScheduleDTO.getUserId());
-        } catch (ApiException e) {
+            birthdayScheduleClient.advanceSchedule(birthdayScheduleDTO.getGuildId(), birthdayScheduleDTO.getUserId());
+        } catch (Exception e) {
             log.warn("Scheduler: Failed to advance birthday schedule for guildId: [{}], userId: [{}]",
                     birthdayScheduleDTO.getGuildId(), birthdayScheduleDTO.getUserId(), e
             );
@@ -150,8 +157,8 @@ public class ActiveScheduleCheck {
 
     private @Nullable ConfigDTO getConfig(long guildId) {
         try {
-            return configApi.getConfig(guildId);
-        } catch (ApiException e) {
+            return configClient.getConfig(guildId);
+        } catch (Exception e) {
             log.debug("Scheduler: Failed to retrieve configuration for guildId: [{}]", guildId, e);
             return null;
         }

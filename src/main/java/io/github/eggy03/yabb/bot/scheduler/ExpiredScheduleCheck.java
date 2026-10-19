@@ -1,17 +1,17 @@
 package io.github.eggy03.yabb.bot.scheduler;
 
-import io.github.eggy03.yabb.client.ApiException;
-import io.github.eggy03.yabb.client.api.BirthdayScheduleApi;
-import io.github.eggy03.yabb.client.models.BirthdayScheduleDTO;
+import io.github.eggy03.yabb.bot.client.interfaces.BirthdayScheduleClient;
+import io.github.eggy03.yabb.bot.client.model.BirthdayScheduleDTO;
 import io.quarkus.scheduler.Scheduled;
 import io.smallrye.common.annotation.Blocking;
 import io.smallrye.common.annotation.RunOnVirtualThread;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.entities.ISnowflake;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.List;
@@ -21,11 +21,16 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @ApplicationScoped
-@RequiredArgsConstructor
 public class ExpiredScheduleCheck {
 
-    private final @NonNull BirthdayScheduleApi birthdayScheduleApi;
+    private final @NonNull BirthdayScheduleClient birthdayScheduleClient;
     private final @NonNull ShardManager shardManager;
+
+    @Inject
+    public ExpiredScheduleCheck(@NonNull @RestClient BirthdayScheduleClient birthdayScheduleClient, @NonNull ShardManager shardManager) {
+        this.birthdayScheduleClient = birthdayScheduleClient;
+        this.shardManager = shardManager;
+    }
 
     @Scheduled(every = "60s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     @Blocking
@@ -52,11 +57,11 @@ public class ExpiredScheduleCheck {
     // it's hideous to try catch them in the scheduler
     private @NonNull @Unmodifiable List<@NonNull BirthdayScheduleDTO> getExpiredSchedules() {
         try {
-            return birthdayScheduleApi.getExpiredSchedules()
+            return birthdayScheduleClient.getExpiredSchedules()
                     .stream()
                     .filter(Objects::nonNull)
                     .toList();
-        } catch (ApiException e) {
+        } catch (Exception e) {
             log.warn("Scheduler: Failed to retrieve expired birthday schedules", e);
             return List.of();
         }
@@ -65,8 +70,8 @@ public class ExpiredScheduleCheck {
     private void advanceSchedule(@NonNull BirthdayScheduleDTO dto) {
 
         try {
-            birthdayScheduleApi.advance(dto.getGuildId(), dto.getUserId());
-        } catch (ApiException e) {
+            birthdayScheduleClient.advanceSchedule(dto.getGuildId(), dto.getUserId());
+        } catch (Exception e) {
             log.warn("Scheduler: Failed to advance expired birthday schedules", e);
         }
     }

@@ -1,12 +1,12 @@
 package io.github.eggy03.yabb.bot.service.command;
 
+import io.github.eggy03.yabb.bot.client.exception.ApiException;
+import io.github.eggy03.yabb.bot.client.interfaces.ConfigClient;
+import io.github.eggy03.yabb.bot.client.model.ApiError;
+import io.github.eggy03.yabb.bot.client.model.ConfigDTO;
 import io.github.eggy03.yabb.bot.environment.YabbEnvironment;
-import io.github.eggy03.yabb.bot.utils.ErrorResponseDeserializer;
-import io.github.eggy03.yabb.client.ApiException;
-import io.github.eggy03.yabb.client.api.ConfigApi;
-import io.github.eggy03.yabb.client.models.ConfigDTO;
-import io.github.eggy03.yabb.client.models.ErrorResponse;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -16,18 +16,20 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.utils.MarkdownUtil;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import java.util.Objects;
 
-@ApplicationScoped
 @Slf4j
+@ApplicationScoped
 public class ConfigCommandService {
 
-    private final @NonNull ConfigApi configApi;
+    private final @NonNull ConfigClient configClient;
     private final @NonNull YabbEnvironment yabbEnvironment;
 
-    public ConfigCommandService(@NonNull ConfigApi configApi, @NonNull YabbEnvironment yabbEnvironment) {
-        this.configApi = configApi;
+    @Inject
+    public ConfigCommandService(@NonNull @RestClient ConfigClient configClient, @NonNull YabbEnvironment yabbEnvironment) {
+        this.configClient = configClient;
         this.yabbEnvironment = yabbEnvironment;
     }
 
@@ -49,10 +51,11 @@ public class ConfigCommandService {
         Role announcementRole = roleOption == null ? null : roleOption.getAsRole();
 
         // build the dto
-        ConfigDTO configDTO = new ConfigDTO();
-        configDTO.setGuildId(event.getGuild().getIdLong());
-        configDTO.setChannelId(announcementChannel.getIdLong());
-        configDTO.setRoleId(announcementRole == null ? null : announcementRole.getIdLong());
+        ConfigDTO configDTO = new ConfigDTO(
+                event.getGuild().getIdLong(),
+                announcementChannel.getIdLong(),
+                announcementRole == null ? null : announcementRole.getIdLong()
+        );
 
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
@@ -61,7 +64,7 @@ public class ConfigCommandService {
         embedBuilder.setThumbnail(guild.getIconUrl());
 
         try {
-            configApi.saveConfig(configDTO);
+            configClient.saveConfig(configDTO);
 
             embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
             embedBuilder.addField(
@@ -75,9 +78,9 @@ public class ConfigCommandService {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
-            ErrorResponse errorResponse = ErrorResponseDeserializer.fromApiException(e);
-            switch (e.getCode()) {
-                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(errorResponse.getMessage()), false);
+            ApiError apiError = e.getError();
+            switch (apiError.getStatus()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.getMessage()), false);
                 case 409 -> embedBuilder.addField("Configuration Already Exists", MarkdownUtil.codeblock("Guild (%s) is already configured".formatted(guild.getName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
@@ -107,7 +110,7 @@ public class ConfigCommandService {
         embedBuilder.setThumbnail(guild.getIconUrl());
 
         try {
-            ConfigDTO configDTO = configApi.getConfig(guild.getIdLong());
+            ConfigDTO configDTO = configClient.getConfig(guild.getIdLong());
 
             TextChannel announcementChanel = guild.getTextChannelById(configDTO.getChannelId());
             Role announcementRole = configDTO.getRoleId() == null ? null : guild.getRoleById(configDTO.getRoleId());
@@ -127,9 +130,9 @@ public class ConfigCommandService {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
-            ErrorResponse errorResponse = ErrorResponseDeserializer.fromApiException(e);
-            switch (e.getCode()) {
-                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(errorResponse.getMessage()), false);
+            ApiError apiError = e.getError();
+            switch (apiError.getStatus()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.getMessage()), false);
                 case 404 -> embedBuilder.addField("Configuration Does Not Exist", MarkdownUtil.codeblock("Guild (%s) is not configured".formatted(guild.getName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
@@ -159,7 +162,7 @@ public class ConfigCommandService {
         embedBuilder.setThumbnail(guild.getIconUrl());
 
         try {
-            configApi.deleteConfig(guild.getIdLong());
+            configClient.deleteConfig(guild.getIdLong());
 
             embedBuilder.setColor(yabbEnvironment.embedColor().destructiveColor());
             embedBuilder.addField(
@@ -173,9 +176,9 @@ public class ConfigCommandService {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
-            ErrorResponse errorResponse = ErrorResponseDeserializer.fromApiException(e);
-            switch (e.getCode()) {
-                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(errorResponse.getMessage()), false);
+            ApiError apiError = e.getError();
+            switch (apiError.getStatus()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.getMessage()), false);
                 case 404 -> embedBuilder.addField("Configuration Does Not Exist", MarkdownUtil.codeblock("Guild (%s) is not configured".formatted(guild.getName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);

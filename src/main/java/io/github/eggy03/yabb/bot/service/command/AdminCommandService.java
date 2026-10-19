@@ -1,31 +1,36 @@
 package io.github.eggy03.yabb.bot.service.command;
 
+import io.github.eggy03.yabb.bot.client.exception.ApiException;
+import io.github.eggy03.yabb.bot.client.interfaces.BirthdayClient;
+import io.github.eggy03.yabb.bot.client.model.ApiError;
+import io.github.eggy03.yabb.bot.client.model.BirthdayDTO;
 import io.github.eggy03.yabb.bot.environment.YabbEnvironment;
-import io.github.eggy03.yabb.bot.utils.ErrorResponseDeserializer;
-import io.github.eggy03.yabb.client.ApiException;
-import io.github.eggy03.yabb.client.api.BirthdayApi;
-import io.github.eggy03.yabb.client.models.BirthdayDTO;
-import io.github.eggy03.yabb.client.models.ErrorResponse;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.utils.MarkdownUtil;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import java.time.Month;
 import java.util.Objects;
 
 @Slf4j
 @ApplicationScoped
-@RequiredArgsConstructor
 public class AdminCommandService {
 
-    private final @NonNull BirthdayApi birthdayApi;
+    private final @NonNull BirthdayClient birthdayClient;
     private final @NonNull YabbEnvironment yabbEnvironment;
+
+    @Inject
+    public AdminCommandService(@NonNull @RestClient BirthdayClient birthdayClient, @NonNull YabbEnvironment yabbEnvironment) {
+        this.birthdayClient = birthdayClient;
+        this.yabbEnvironment = yabbEnvironment;
+    }
 
     public void handleSave(@NonNull SlashCommandInteractionEvent event) {
 
@@ -44,12 +49,13 @@ public class AdminCommandService {
         OptionMapping timeZoneOption = Objects.requireNonNull(event.getOption("time_zone"), "time_zone cannot be null");
 
         // build the dto
-        BirthdayDTO birthdayDTO = new BirthdayDTO();
-        birthdayDTO.setGuildId(guild.getIdLong());
-        birthdayDTO.setUserId(birthUserOption.getAsUser().getIdLong());
-        birthdayDTO.setMonth(birthMonthOption.getAsInt());
-        birthdayDTO.setDay(birthDayOption.getAsInt());
-        birthdayDTO.setZoneId(timeZoneOption.getAsString());
+        BirthdayDTO birthdayDTO = new BirthdayDTO(
+                guild.getIdLong(),
+                birthUserOption.getAsUser().getIdLong(),
+                birthMonthOption.getAsInt(),
+                birthDayOption.getAsInt(),
+                timeZoneOption.getAsString()
+        );
 
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
@@ -58,7 +64,7 @@ public class AdminCommandService {
         embedBuilder.setThumbnail(birthUserOption.getAsUser().getEffectiveAvatarUrl());
 
         try {
-            birthdayApi.saveBirthday(birthdayDTO);
+            birthdayClient.saveBirthday(birthdayDTO);
 
             embedBuilder.setColor(yabbEnvironment.embedColor().successColor());
             embedBuilder.addField(
@@ -81,9 +87,9 @@ public class AdminCommandService {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
-            ErrorResponse errorResponse = ErrorResponseDeserializer.fromApiException(e);
-            switch (e.getCode()) {
-                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(errorResponse.getMessage()), false);
+            ApiError apiError = e.getError();
+            switch (apiError.getStatus()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.getMessage()), false);
                 case 409 -> embedBuilder.addField("Birthday Already Exists", MarkdownUtil.codeblock("Birthday for user (%s) already exists".formatted(birthUserOption.getAsUser().getEffectiveName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
@@ -115,7 +121,7 @@ public class AdminCommandService {
         embedBuilder.setThumbnail(birthUserOption.getAsUser().getEffectiveAvatarUrl());
 
         try {
-            birthdayApi.deleteBirthday(guild.getIdLong(), birthUserOption.getAsUser().getIdLong());
+            birthdayClient.deleteBirthday(guild.getIdLong(), birthUserOption.getAsUser().getIdLong());
 
             embedBuilder.setColor(yabbEnvironment.embedColor().destructiveColor());
             embedBuilder.addField(
@@ -129,9 +135,9 @@ public class AdminCommandService {
 
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
-            ErrorResponse errorResponse = ErrorResponseDeserializer.fromApiException(e);
-            switch (e.getCode()) {
-                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(errorResponse.getMessage()), false);
+            ApiError apiError = e.getError();
+            switch (apiError.getStatus()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.getMessage()), false);
                 case 404 -> embedBuilder.addField("Birthday Does Not Exist", MarkdownUtil.codeblock("Birthday not found for (%s)".formatted(birthUserOption.getAsUser().getEffectiveName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
