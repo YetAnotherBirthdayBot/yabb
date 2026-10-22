@@ -86,9 +86,9 @@ public class BirthdayCommandService {
                                     .formatted(
                                             event.getUser().getAsMention(),
                                             event.getUser().getEffectiveName(),
-                                            birthdayDTO.getDay(),
-                                            Month.of(birthdayDTO.getMonth()).name(),
-                                            birthdayDTO.getZoneId()
+                                            birthdayDTO.day(),
+                                            Month.of(birthdayDTO.month()).getDisplayName(TextStyle.FULL, Locale.ENGLISH),
+                                            birthdayDTO.zoneId()
                                     )
                     ),
                     false
@@ -100,8 +100,8 @@ public class BirthdayCommandService {
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
             ApiError apiError = e.getError();
-            switch (apiError.getStatus()) {
-                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.getMessage()), false);
+            switch (apiError.status()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.message()), false);
                 case 409 -> embedBuilder.addField("Birthday Already Exists", MarkdownUtil.codeblock("Birthday for (%s) already exists".formatted(event.getUser().getEffectiveName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
@@ -144,10 +144,10 @@ public class BirthdayCommandService {
                                     .formatted(
                                             birthUser.getAsMention(),
                                             birthUser.getEffectiveName(),
-                                            birthdayDTO.getDay(),
-                                            Month.of(birthdayDTO.getMonth()).getDisplayName(TextStyle.FULL, Locale.ENGLISH),
-                                            birthdayDTO.getZoneId(),
-                                            TimeFormat.DATE_SHORT_TIME_SHORT.format(birthdayScheduleDTO.getUpcomingBirthdayAt())
+                                            birthdayDTO.day(),
+                                            Month.of(birthdayDTO.month()).getDisplayName(TextStyle.FULL, Locale.ENGLISH),
+                                            birthdayDTO.zoneId(),
+                                            TimeFormat.DATE_SHORT_TIME_SHORT.format(birthdayScheduleDTO.upcomingBirthdayAt())
                                     )
                     ),
                     false
@@ -201,7 +201,7 @@ public class BirthdayCommandService {
             Map<Integer, List<BirthdayDTO>> birthdayDTOMap = birthdayDTOList
                     .stream()
                     .filter(Objects::nonNull)
-                    .collect(Collectors.groupingBy(BirthdayDTO::getMonth));
+                    .collect(Collectors.groupingBy(BirthdayDTO::month));
 
             // show the same grouping in the embed
             // each field represents a month
@@ -210,11 +210,11 @@ public class BirthdayCommandService {
                             MarkdownUtil.underline(Month.of(month).getDisplayName(TextStyle.FULL, Locale.ENGLISH)),
                             birthdayList.stream()
                                     .map(dto -> {
-                                        User user = event.getJDA().getUserById(dto.getUserId());
+                                        User user = event.getJDA().getUserById(dto.userId());
                                         String userName = user == null ? "N/A" : user.getEffectiveName();
                                         String userMention = user == null ? "N/A" : user.getAsMention();
 
-                                        return MarkdownUtil.quote("[%s]-[%s]-[%s]".formatted(userMention, userName, dto.getDay()));
+                                        return MarkdownUtil.quote("[%s]-[%s]-[%s]".formatted(userMention, userName, dto.day()));
                                     })
                                     .collect(Collectors.joining(System.lineSeparator())),
                             false
@@ -228,8 +228,8 @@ public class BirthdayCommandService {
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
             ApiError apiError = e.getError();
-            if (apiError.getStatus() == 400) {
-                embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.getMessage()), false);
+            if (apiError.status() == 400) {
+                embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.message()), false);
             } else {
                 embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
                 log.warn("API Error during user view all birthdays", e);
@@ -272,8 +272,8 @@ public class BirthdayCommandService {
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
             ApiError apiError = e.getError();
-            switch (apiError.getStatus()) {
-                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.getMessage()), false);
+            switch (apiError.status()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.message()), false);
                 case 404 -> embedBuilder.addField("Birthday Does Not Exist", MarkdownUtil.codeblock("Birthday not found for (%s)".formatted(event.getUser().getEffectiveName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);

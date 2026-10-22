@@ -79,8 +79,8 @@ public class ConfigCommandService {
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
             ApiError apiError = e.getError();
-            switch (apiError.getStatus()) {
-                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.getMessage()), false);
+            switch (apiError.status()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.message()), false);
                 case 409 -> embedBuilder.addField("Configuration Already Exists", MarkdownUtil.codeblock("Guild (%s) is already configured".formatted(guild.getName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
@@ -112,8 +112,8 @@ public class ConfigCommandService {
         try {
             ConfigDTO configDTO = configClient.getConfig(guild.getIdLong());
 
-            TextChannel announcementChanel = guild.getTextChannelById(configDTO.getChannelId());
-            Role announcementRole = configDTO.getRoleId() == null ? null : guild.getRoleById(configDTO.getRoleId());
+            TextChannel announcementChanel = guild.getTextChannelById(configDTO.channelId());
+            Role announcementRole = configDTO.roleId() == null ? null : guild.getRoleById(configDTO.roleId());
 
             String announcementChannelMention = announcementChanel == null ? "N/A" : announcementChanel.getAsMention();
             String announcementRoleMention = announcementRole == null ? "N/A" : announcementRole.getAsMention();
@@ -131,8 +131,8 @@ public class ConfigCommandService {
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
             ApiError apiError = e.getError();
-            switch (apiError.getStatus()) {
-                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.getMessage()), false);
+            switch (apiError.status()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.message()), false);
                 case 404 -> embedBuilder.addField("Configuration Does Not Exist", MarkdownUtil.codeblock("Guild (%s) is not configured".formatted(guild.getName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
@@ -177,8 +177,8 @@ public class ConfigCommandService {
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
             ApiError apiError = e.getError();
-            switch (apiError.getStatus()) {
-                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.getMessage()), false);
+            switch (apiError.status()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.message()), false);
                 case 404 -> embedBuilder.addField("Configuration Does Not Exist", MarkdownUtil.codeblock("Guild (%s) is not configured".formatted(guild.getName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);

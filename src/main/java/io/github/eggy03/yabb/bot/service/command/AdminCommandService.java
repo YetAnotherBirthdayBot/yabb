@@ -17,6 +17,8 @@ import net.dv8tion.jda.api.utils.MarkdownUtil;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import java.time.Month;
+import java.time.format.TextStyle;
+import java.util.Locale;
 import java.util.Objects;
 
 @Slf4j
@@ -74,9 +76,9 @@ public class AdminCommandService {
                                     .formatted(
                                             birthUserOption.getAsUser().getAsMention(),
                                             birthUserOption.getAsUser().getEffectiveName(),
-                                            birthdayDTO.getDay(),
-                                            Month.of(birthdayDTO.getMonth()).name(),
-                                            birthdayDTO.getZoneId()
+                                            birthdayDTO.day(),
+                                            Month.of(birthdayDTO.month()).getDisplayName(TextStyle.FULL, Locale.ENGLISH),
+                                            birthdayDTO.zoneId()
                                     )
                     ),
                     false
@@ -88,8 +90,8 @@ public class AdminCommandService {
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
             ApiError apiError = e.getError();
-            switch (apiError.getStatus()) {
-                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.getMessage()), false);
+            switch (apiError.status()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.message()), false);
                 case 409 -> embedBuilder.addField("Birthday Already Exists", MarkdownUtil.codeblock("Birthday for user (%s) already exists".formatted(birthUserOption.getAsUser().getEffectiveName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
@@ -136,8 +138,8 @@ public class AdminCommandService {
             embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
 
             ApiError apiError = e.getError();
-            switch (apiError.getStatus()) {
-                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.getMessage()), false);
+            switch (apiError.status()) {
+                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.message()), false);
                 case 404 -> embedBuilder.addField("Birthday Does Not Exist", MarkdownUtil.codeblock("Birthday not found for (%s)".formatted(birthUserOption.getAsUser().getEffectiveName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
