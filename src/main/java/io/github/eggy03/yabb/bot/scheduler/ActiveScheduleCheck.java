@@ -66,7 +66,7 @@ public class ActiveScheduleCheck {
         // then advance the schedule
         getActiveSchedules()
                 .stream()
-                .filter(dto -> guildCacheSet.contains(dto.getGuildId()))
+                .filter(dto -> guildCacheSet.contains(dto.guildId()))
                 .forEach(this::sendEmbedAndAdvanceSchedule);
     }
 
@@ -77,12 +77,12 @@ public class ActiveScheduleCheck {
         // if config is null, it means the guild is not registered to receive birthday notifications
         // or the config could not be resolved due to API errors.
         // in either case, exit early
-        ConfigDTO configDTO = getConfig(birthdayScheduleDTO.getGuildId());
+        ConfigDTO configDTO = getConfig(birthdayScheduleDTO.guildId());
         if (configDTO == null)
             return;
 
         // resolve the channel to which the notification will be sent
-        TextChannel textChannel = shardManager.getTextChannelById(configDTO.getChannelId());
+        TextChannel textChannel = shardManager.getTextChannelById(configDTO.channelId());
         if (textChannel == null)
             return;
 
@@ -93,11 +93,11 @@ public class ActiveScheduleCheck {
         }
 
         // resolve the announcement role
-        Role announcementRole = configDTO.getRoleId() == null ? null : shardManager.getRoleById(configDTO.getRoleId());
+        Role announcementRole = configDTO.roleId() == null ? null : shardManager.getRoleById(configDTO.roleId());
         String announcementRoleMention = announcementRole == null ? "Everyone" : announcementRole.getAsMention();
 
         // resolve the birthday user
-        User user = shardManager.getUserById(birthdayScheduleDTO.getUserId());
+        User user = shardManager.getUserById(birthdayScheduleDTO.userId());
         String userName = user == null ? "N/A" : user.getEffectiveName();
         String userMention = user == null ? "N/A" : user.getAsMention();
 
@@ -109,7 +109,7 @@ public class ActiveScheduleCheck {
         eb.setThumbnail(user == null ? null : user.getEffectiveAvatarUrl());
 
         eb.addField(MarkdownUtil.underline("Birthday Member"), MarkdownUtil.quoteBlock("%s (%s)").formatted(userMention, userName), false);
-        eb.addField(MarkdownUtil.underline("Birthday Time"), MarkdownUtil.quoteBlock(TimeFormat.DATE_SHORT_TIME_SHORT.format(birthdayScheduleDTO.getUpcomingBirthdayAt())), false);
+        eb.addField(MarkdownUtil.underline("Birthday Time"), MarkdownUtil.quoteBlock(TimeFormat.DATE_SHORT_TIME_SHORT.format(birthdayScheduleDTO.upcomingBirthdayAt())), false);
 
         eb.setFooter("Sent");
         eb.setTimestamp(Instant.now());
@@ -124,7 +124,7 @@ public class ActiveScheduleCheck {
             advanceSchedule(birthdayScheduleDTO);
         } catch (Exception e) {
             log.warn("Scheduler: Failed to send birthday notification for user:[{}], having userId:[{}], in guild: [{}]",
-                    userName, birthdayScheduleDTO.getUserId(), birthdayScheduleDTO.getGuildId(), e
+                    userName, birthdayScheduleDTO.userId(), birthdayScheduleDTO.guildId(), e
             );
         }
     }
@@ -147,10 +147,10 @@ public class ActiveScheduleCheck {
     private void advanceSchedule(@NonNull BirthdayScheduleDTO birthdayScheduleDTO) {
 
         try {
-            birthdayScheduleClient.advanceSchedule(birthdayScheduleDTO.getGuildId(), birthdayScheduleDTO.getUserId());
+            birthdayScheduleClient.advanceSchedule(birthdayScheduleDTO.guildId(), birthdayScheduleDTO.userId());
         } catch (Exception e) {
             log.warn("Scheduler: Failed to advance birthday schedule for guildId: [{}], userId: [{}]",
-                    birthdayScheduleDTO.getGuildId(), birthdayScheduleDTO.getUserId(), e
+                    birthdayScheduleDTO.guildId(), birthdayScheduleDTO.userId(), e
             );
         }
     }

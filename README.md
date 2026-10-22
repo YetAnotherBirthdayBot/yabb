@@ -1,5 +1,3 @@
-_Last Updated : October 18, 2026_
-
 # Deployment Guide for YABB and it's related services
 
 > [!IMPORTANT]
@@ -58,7 +56,7 @@ networks:
 services:
   api:
     container_name: yabb-api
-    image: ghcr.io/yetanotherbirthdaybot/yabb-api-native:latest
+    image: ghcr.io/yetanotherbirthdaybot/yabb-api:latest
     environment:
       DB_URL: ${DB_URL}
       DB_USERNAME: ${DB_USERNAME}

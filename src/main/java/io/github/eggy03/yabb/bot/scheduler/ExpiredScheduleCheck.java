@@ -49,7 +49,7 @@ public class ExpiredScheduleCheck {
         // update expired birthday schedules for next year
         getExpiredSchedules()
                 .stream()
-                .filter(dto -> guildCacheSet.contains(dto.getGuildId()))
+                .filter(dto -> guildCacheSet.contains(dto.guildId()))
                 .forEach(this::advanceSchedule);
     }
 
@@ -70,7 +70,7 @@ public class ExpiredScheduleCheck {
     private void advanceSchedule(@NonNull BirthdayScheduleDTO dto) {
 
         try {
-            birthdayScheduleClient.advanceSchedule(dto.getGuildId(), dto.getUserId());
+            birthdayScheduleClient.advanceSchedule(dto.guildId(), dto.userId());
         } catch (Exception e) {
             log.warn("Scheduler: Failed to advance expired birthday schedules", e);
         }
