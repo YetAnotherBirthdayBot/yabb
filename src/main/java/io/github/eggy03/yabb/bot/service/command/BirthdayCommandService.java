@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @ApplicationScoped
+@SuppressWarnings("java:S1192")
 public class BirthdayCommandService {
 
     private final @NonNull BirthdayClient birthdayClient;
@@ -101,8 +102,16 @@ public class BirthdayCommandService {
 
             ApiError apiError = e.getError();
             switch (apiError.status()) {
-                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.message()), false);
-                case 409 -> embedBuilder.addField("Birthday Already Exists", MarkdownUtil.codeblock("Birthday for (%s) already exists".formatted(event.getUser().getEffectiveName())), false);
+                case 400 -> {
+                    embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.message()), false);
+                    embedBuilder.addField("Help with timezones",
+                            MarkdownUtil.quoteBlock("""
+                                    - If you are struggling with providing a valid time zone, check out the [IANA TimeZone DB](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
+                                    - GMT/UTC/UT based configuration is also accepted but you will have to manually account for DST.
+                                    """), false);
+                }
+                case 409 ->
+                        embedBuilder.addField("Birthday Already Exists", MarkdownUtil.codeblock("Birthday for (%s) already exists".formatted(event.getUser().getEffectiveName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
                     log.warn("API Error during user save birthday", e);
@@ -192,7 +201,7 @@ public class BirthdayCommandService {
             // case where birthdays are not found
             if (birthdayDTOList.isEmpty()) {
                 embedBuilder.setColor(yabbEnvironment.embedColor().warningColor());
-                embedBuilder.addField("Uh Oh!","No birthdays found for this guild", false);
+                embedBuilder.addField("Uh Oh!", "No birthdays found for this guild", false);
                 event.getHook().editOriginalEmbeds(embedBuilder.build()).queue();
                 return;
             }
@@ -273,8 +282,10 @@ public class BirthdayCommandService {
 
             ApiError apiError = e.getError();
             switch (apiError.status()) {
-                case 400 -> embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.message()), false);
-                case 404 -> embedBuilder.addField("Birthday Does Not Exist", MarkdownUtil.codeblock("Birthday not found for (%s)".formatted(event.getUser().getEffectiveName())), false);
+                case 400 ->
+                        embedBuilder.addField("Invalid Parameters", MarkdownUtil.codeblock(apiError.message()), false);
+                case 404 ->
+                        embedBuilder.addField("Birthday Does Not Exist", MarkdownUtil.codeblock("Birthday not found for (%s)".formatted(event.getUser().getEffectiveName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
                     log.warn("API Error during user delete birthday", e);
