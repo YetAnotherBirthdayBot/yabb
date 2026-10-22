@@ -212,7 +212,7 @@ public class BirthdayCommandService {
                                     .map(dto -> {
                                         User user = event.getJDA().getUserById(dto.userId());
                                         String userName = user == null ? "N/A" : user.getEffectiveName();
-                                        String userMention = user == null ? "N/A" : user.getAsMention();
+                                        String userMention = user == null ? String.valueOf(dto.userId()) : user.getAsMention();
 
                                         return MarkdownUtil.quote("[%s]-[%s]-[%s]".formatted(userMention, userName, dto.day()));
                                     })
