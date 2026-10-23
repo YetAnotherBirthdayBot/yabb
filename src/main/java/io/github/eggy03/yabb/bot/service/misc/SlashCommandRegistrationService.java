@@ -53,7 +53,7 @@ public class SlashCommandRegistrationService {
         CommandData mod = Commands
                 .slash("mod", "Moderator commands")
                 .setContexts(InteractionContextType.GUILD)
-                .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.BAN_MEMBERS, Permission.KICK_MEMBERS))
+                .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MANAGE_EVENTS))
                 .addSubcommands(
                         new SubcommandData("savebirthday", "Save someone's birthday in this guild")
                                 .addOption(OptionType.USER, "birth_user", "User whose birthday will be saved", true)
