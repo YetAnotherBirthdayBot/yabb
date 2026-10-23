@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.github.eggy03</groupId>
     <artifactId>yabb</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.7</version>
     <name>Yet Another Birthday Bot</name>
     <description>A simple birthday bot</description>
     <packaging>quarkus</packaging>
