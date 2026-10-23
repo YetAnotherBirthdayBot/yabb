@@ -53,7 +53,7 @@ public class SlashCommandRegistrationService {
         CommandData admin = Commands
                 .slash("admin", "Admin commands")
                 .setContexts(InteractionContextType.GUILD)
-                .setDefaultPermissions(DefaultMemberPermissions.DISABLED)
+                .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.BAN_MEMBERS, Permission.KICK_MEMBERS))
                 .addSubcommands(
                         new SubcommandData("savebirthday", "Save someone's birthday in this guild")
                                 .addOption(OptionType.USER, "birth_user", "User whose birthday will be saved", true)
