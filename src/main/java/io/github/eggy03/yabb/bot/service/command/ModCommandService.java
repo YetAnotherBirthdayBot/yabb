@@ -23,13 +23,13 @@ import java.util.Objects;
 
 @Slf4j
 @ApplicationScoped
-public class AdminCommandService {
+public class ModCommandService {
 
     private final @NonNull BirthdayClient birthdayClient;
     private final @NonNull YabbEnvironment yabbEnvironment;
 
     @Inject
-    public AdminCommandService(@NonNull @RestClient BirthdayClient birthdayClient, @NonNull YabbEnvironment yabbEnvironment) {
+    public ModCommandService(@NonNull @RestClient BirthdayClient birthdayClient, @NonNull YabbEnvironment yabbEnvironment) {
         this.birthdayClient = birthdayClient;
         this.yabbEnvironment = yabbEnvironment;
     }
@@ -61,7 +61,7 @@ public class AdminCommandService {
 
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
-        embedBuilder.setTitle("Admin Save Birthday");
+        embedBuilder.setTitle("Moderator Save Birthday");
         embedBuilder.setDescription("This action is constructive");
         embedBuilder.setThumbnail(birthUserOption.getAsUser().getEffectiveAvatarUrl());
 
@@ -95,7 +95,7 @@ public class AdminCommandService {
                 case 409 -> embedBuilder.addField("Birthday Already Exists", MarkdownUtil.codeblock("Birthday for user (%s) already exists".formatted(birthUserOption.getAsUser().getEffectiveName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
-                    log.warn("API Error during admin save birthday", e);
+                    log.warn("API Error during mod save birthday", e);
                 }
             }
 
@@ -118,7 +118,7 @@ public class AdminCommandService {
 
         // build the embed
         EmbedBuilder embedBuilder = new EmbedBuilder();
-        embedBuilder.setTitle("Admin Delete Birthday");
+        embedBuilder.setTitle("Moderator Delete Birthday");
         embedBuilder.setDescription("This action is destructive");
         embedBuilder.setThumbnail(birthUserOption.getAsUser().getEffectiveAvatarUrl());
 
@@ -143,7 +143,7 @@ public class AdminCommandService {
                 case 404 -> embedBuilder.addField("Birthday Does Not Exist", MarkdownUtil.codeblock("Birthday not found for (%s)".formatted(birthUserOption.getAsUser().getEffectiveName())), false);
                 default -> {
                     embedBuilder.addField("Internal Server Error", MarkdownUtil.codeblock("Something went wrong. Please try again later"), false);
-                    log.warn("API Error during admin delete birthday", e);
+                    log.warn("API Error during mod delete birthday", e);
                 }
             }
 

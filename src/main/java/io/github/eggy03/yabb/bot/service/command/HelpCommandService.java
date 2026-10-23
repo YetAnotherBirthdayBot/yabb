@@ -48,10 +48,10 @@ public class HelpCommandService {
         );
 
         eb.addField(
-                MarkdownUtil.underline("3. Admin Commands"),
+                MarkdownUtil.underline("3. Moderator Commands"),
                 MarkdownUtil.quoteBlock("""
-                        - Use `/admin savebirthday` to save someone's birthday.
-                        - Use `/admin deletebirthday` to delete someone's birthday.
+                        - Use `/mod savebirthday` to save someone's birthday.
+                        - Use `/mod deletebirthday` to delete someone's birthday.
                         """),
                 false
         );
@@ -59,7 +59,7 @@ public class HelpCommandService {
         eb.addField(
                 MarkdownUtil.underline("4. Timezones"),
                 MarkdownUtil.quoteBlock("""
-                        `/birthday save` and `/admin savebirthday` accept time zone in one of the following patterns:
+                        `/birthday save` and `/mod savebirthday` accept time zone in one of the following patterns:
                         - Region Based : `America/Montreal`, `Australia/Perth`, `Europe/Paris`
                         - GMT Offset   : `GMT+0530`, `GMT+0400`
                         - UTC Offset   : `UTC+0530`, `UTC+0400`
@@ -75,7 +75,7 @@ public class HelpCommandService {
                 MarkdownUtil.quoteBlock("""
                         - `/config` requires `MANAGE_SERVER` and above.
                         - `/birthday` requires no special permissions.
-                        - `/admin` requires `ADMINISTRATOR` and above.
+                        - `/mod` requires `BAN_MEMBERS/KICK_MEMBERS` and above.
                         """),
                 false
         );
