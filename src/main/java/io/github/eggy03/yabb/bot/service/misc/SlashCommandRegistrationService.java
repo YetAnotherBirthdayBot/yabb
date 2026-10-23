@@ -49,9 +49,9 @@ public class SlashCommandRegistrationService {
                         new SubcommandData("delete", "Deletes your saved birthday for this guild")
                 );
 
-        // admin commands
-        CommandData admin = Commands
-                .slash("admin", "Admin commands")
+        // mod commands
+        CommandData mod = Commands
+                .slash("mod", "Moderator commands")
                 .setContexts(InteractionContextType.GUILD)
                 .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.BAN_MEMBERS, Permission.KICK_MEMBERS))
                 .addSubcommands(
@@ -74,7 +74,7 @@ public class SlashCommandRegistrationService {
 
         event.getJDA()
                 .updateCommands()
-                .addCommands(config, birthday, admin, help)
+                .addCommands(config, birthday, mod, help)
                 .queue();
     }
 }
