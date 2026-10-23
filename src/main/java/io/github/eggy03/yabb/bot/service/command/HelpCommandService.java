@@ -73,9 +73,9 @@ public class HelpCommandService {
         eb.addField(
                 MarkdownUtil.underline("5. Permissions"),
                 MarkdownUtil.quoteBlock("""
-                        - `/config` requires `MANAGE_SERVER` and above.
+                        - `/config` requires `MANAGE_SERVER`.
                         - `/birthday` requires no special permissions.
-                        - `/mod` requires `BAN_MEMBERS/KICK_MEMBERS` and above.
+                        - `/mod` requires `MANAGE_EVENTS`.
                         """),
                 false
         );
