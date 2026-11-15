@@ -18,19 +18,19 @@
         <!-- Quarkus Properties -->
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-        <quarkus.platform.version>3.40.1.1</quarkus.platform.version>
+        <quarkus.platform.version>3.40.1.2</quarkus.platform.version>
         <skipITs>true</skipITs>
 
         <!-- Dependency Versions -->
         <jda.version>6.7.0</jda.version>
-        <commons-lang3.version>3.21.0</commons-lang3.version>
-        <guava.version>33.7.2-jre</guava.version>
+        <commons-lang3.version>3.22.0</commons-lang3.version>
+        <guava.version>33.8.0-jre</guava.version>
         <jetbrains.annotations.version>26.1.0</jetbrains.annotations.version>
         <lombok.version>1.18.48</lombok.version>
 
         <!-- Plugin Versions -->
         <compiler-plugin.version>3.16.0</compiler-plugin.version>
-        <surefire-plugin.version>3.6.0</surefire-plugin.version>
+        <surefire-plugin.version>3.6.1</surefire-plugin.version>
     </properties>
 
     <dependencyManagement>
