@@ -14,6 +14,7 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.ISnowflake;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -114,11 +115,15 @@ public class ActiveScheduleCheck {
         eb.setFooter("Sent");
         eb.setTimestamp(Instant.now());
 
-        // send the embed to the text channel
+        // send the embed to the text channel and create a thread
         try {
-            textChannel.sendMessage("%s, let's celebrate %s's birthday!".formatted(announcementRoleMention, userName))
+            Message message = textChannel
+                    .sendMessage("%s, let's celebrate %s's birthday!".formatted(announcementRoleMention, userName))
                     .addEmbeds(eb.build())
-                    .complete(); // don't use async cause this needs to complete in the scheduler lifecycle itself
+                    .complete();
+            // don't use queue because all the methods run in virtual threads and yabb-api is itself blocking in nature
+
+            message.createThreadChannel("%s's Birthday Thread".formatted(userName)).complete();
 
             // on success, advance the birthday schedule
             advanceSchedule(birthdayScheduleDTO);
