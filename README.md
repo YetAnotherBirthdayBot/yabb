@@ -27,6 +27,7 @@ Give it the following intents and permissions:
 4) Send Messages
 5) Send Messages In Threads
 6) View Channels
+7) Create Public Threads
 
 **Privileged Gateway Intents**
 
